@@ -1,0 +1,30 @@
+
+services:
+  backend_app:
+    build: ./  # Asegúrate de tener un Dockerfile aquí
+    container_name: my_backend_app
+    ports:
+      - "8080:3000"  # Puerto externo:interno (puedes cambiar a tu gusto)
+    depends_on:
+      - postgres_db
+    restart: unless-stopped
+    # Usa esto si quieres variables de entorno desde un archivo:
+    environment:
+      - DATABASE_URL=postgresql://gz_admin:12345@postgres_db:5432/spot_app_db
+
+  postgres_db:
+    image: postgres:13
+    container_name: contenedor_postgres
+    environment:
+      POSTGRES_USER: gz_admin
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: spot_app_db
+    ports:
+      - "6543:5432"  # Cambiado a evitar conflictos
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+    driver: local
