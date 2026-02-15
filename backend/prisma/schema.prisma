@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
+   log = ["query"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id              Int                 @id @default(autoincrement())
+  nombre          String
+  email           String              @unique
+  contrasena      String?             // NULL para usuarios de Google
+  googleId        String?             @unique // ID de Google OAuth
+  provider        String              @default("local") // "local" | "google"
+  emailVerificado Boolean             @default(false) // Para verificación de email
+  ubicacion       UbicacionOpcional?  @relation() // Relación uno a uno, sin especificar `fields` ni `references`
+  fotoPerfil      String              @default("https://via.placeholder.com/150")
+  createdAt       DateTime            @default(now()) // Fecha de creación
+  updatedAt       DateTime            @updatedAt // Fecha de actualización
+  calificaciones  Calificacion[]
+  comentarios     ComentariosResena[] 
+  @@map("usuarios")
+}
+
+model UbicacionOpcional {
+  id        Int     @id // El id será el mismo que el de Usuario
+  latitud   Float   @default(0.0)
+  longitud  Float   @default(0.0)
+  usuario   Usuario @relation(fields: [id], references: [id]) // Relación con Usuario
+
+  @@map("ubicaciones_opcionales")
+}
+
+model Resena {
+  id           Int       @id @default(autoincrement())
+  usuarioId    Int
+  latitud      Float     @default(0.0) // Valor predeterminado
+  longitud     Float     @default(0.0) // Valor predeterminado
+  nombreLugar  String
+  categoriaId  Int
+  fecha        DateTime  @default(now())
+  vistas       Int       @default(0)
+  descripcion        String? 
+  fotoPrincipal String    @default("https://via.placeholder.com/150") // URL predeterminada para la foto principal
+  fotos        FotoResena[]  // Relación con las fotos de la reseña
+  sumaCalificaciones Int @default(0) // Suma de calificaciones
+  totalCalificaciones Int @default(0) // Total de calificaciones
+  calificacion  Int       @default(0) 
+  calificaciones      Calificacion[]
+  comentarios         ComentariosResena[]
+  @@map("resenas")
+}
+
+
+model Calificacion {
+  id           Int       @id @default(autoincrement())
+  resenaId     Int       // Referencia a la reseña
+  resena       Resena    @relation(fields: [resenaId], references: [id]) // Relación con la tabla Resena
+  usuarioId    Int       // Referencia al usuario
+  usuario      Usuario   @relation(fields: [usuarioId], references: [id]) // Relación con la tabla Usuario
+  calificacion Int       // Calificación dada por el usuario (1-5)
+  fecha        DateTime  @default(now()) // Fecha de la calificación
+
+  @@map("calificaciones")
+}
+
+
+model FotoResena {
+  id        Int    @id @default(autoincrement())
+  resenaId  Int    // Campo que almacena la referencia a la reseña
+  resena    Resena @relation(fields: [resenaId], references: [id]) // Relación con Resena
+  url       String @default("https://via.placeholder.com/150") // URL predeterminada para las fotos
+  orden     Int    // Orden de la foto dentro de la reseña (1 a 7)
+
+  @@map("fotos_resena")
+}
+
+model ComentariosResena {
+  id         Int       @id @default(autoincrement())
+  resenaId   Int       // Referencia a la reseña
+  usuarioId  Int       // Referencia al usuario
+  comentario String
+  fecha      DateTime  @default(now())
+
+  usuario    Usuario   @relation(fields: [usuarioId], references: [id]) // Relación con Usuario
+  resena     Resena    @relation(fields: [resenaId], references: [id]) // Relación con Resena
+
+  @@map("comentarios_resena")
+}
+
+model HistorialCalificaciones {
+  id           Int       @id @default(autoincrement())
+  resenaId     Int       // Referencia a la reseña, pero sin relación explícita
+  usuarioId    Int       // Referencia al usuario, pero sin relación explícita
+  calificacion Int
+  fecha        DateTime  @default(now())
+
+  @@map("historial_calificaciones")
+}
+
+
+model HistorialBusqueda {
+  id              Int       @id @default(autoincrement())
+  usuarioId       Int       // Referencia al usuario, pero sin relación explícita
+  terminoBusqueda String
+
+  @@map("historial_busqueda")
+}
