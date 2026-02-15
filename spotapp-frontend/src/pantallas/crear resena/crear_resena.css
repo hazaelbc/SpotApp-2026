@@ -1,0 +1,241 @@
+.crear-resena-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 2rem;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .crear-resena-form {
+    display: flex;
+    gap: 2rem;
+    height: 500px;
+    width: 1500px;
+    max-width: 1020px;
+    overflow-y: auto; /* Habilita el desplazamiento vertical */
+  }
+  
+  .crear-resena-imagenes {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+  }
+  
+  .imagen-placeholder {
+    color: #aaa;
+    font-size: 1rem;
+  }
+  
+  .crear-resena-campos {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .campo label {
+    font-weight: bold;
+    color: #555;
+  }
+  
+  .campo input {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    color: #000;
+  }
+  
+  .crear-resena-botones {
+    display: flex;
+    gap: 1rem;
+    margin-left: 750px;
+    justify-content: flex-end;
+  }
+  
+  .btn {
+    padding: 0.55rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer; /* Cambia el cursor a interactivo */
+  }
+  
+  .btn.aceptar {
+    background-color: #41703E;
+    color: white;
+  }
+  
+  .btn.aceptar :hover {
+    background-color: #355433;
+    color: white;
+  }
+  .btn.cancelar {
+    background-color: #862e28;
+    color: white;
+  }
+
+  .btn.cancelar :hover{
+    background-color: #602622;
+    color: white;
+  }
+
+  .campo textarea {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    color: #000;
+    resize: none;
+  }
+  
+  .campo input,
+  .campo textarea {
+    width: 100%;
+    font-size: 1rem;
+  }
+
+  .campo-linea {
+    display: flex;
+    gap: 1rem; /* Espaciado entre los elementos */
+    align-items: center; /* Alinea verticalmente los elementos */
+  }
+  
+  .campo-linea select {
+    flex: 1; /* Hace que los select ocupen el mismo espacio */
+  }
+
+  .modal-overlay {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    height: 500px;
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+  }
+  
+  .mapa_local {
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    border-color: #555;
+  }
+  
+  .botones-modal {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Dos columnas */
+    gap: 1rem; /* Espaciado entre los elementos */
+  }
+  
+  .checkbox-group label {
+    display: inline-flex; /* Asegura que el contenido esté en línea */
+    align-items: center; /* Alinea verticalmente el texto con el checkbox */
+    gap: 0.5rem; /* Espaciado entre el checkbox y el texto */
+    font-size: 1rem;
+    white-space: nowrap; /* Evita que el texto se divida en varias líneas */
+    margin: 0; /* Elimina márgenes adicionales */
+  }
+  
+  .checkbox-group input[type="radio"] {
+    margin: 0; /* Elimina márgenes adicionales del radio button */
+    padding: 0; /* Elimina paddings adicionales */
+    accent-color: #4caf50; /* Cambia el color del radio button si es necesario */
+    vertical-align: middle; /* Asegura que el checkbox esté alineado con el texto */
+  }
+
+  .checkbox-group label {
+    color: #000; /* Cambia el color del texto a negro */
+    font-size: 1rem; /* Ajusta el tamaño del texto si es necesario */
+    display: flex; /* Asegura que el contenido esté alineado correctamente */
+    align-items: center; /* Alinea verticalmente el texto con el checkbox */
+    gap: 0.5rem; /* Espaciado entre el checkbox y el texto */
+  }
+
+  .container-mapa{
+    width: 100%;
+    height: 300px;
+    border-radius: 8px;
+    border: 1px solid #b5b5b5;
+  }
+
+  .comentario_recomendacion{
+    color: #545454;
+    font-weight: bold;
+  }
+
+  .crear-resena-imagenes {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ccc; /* Línea continua */
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    height: 500px;
+    width: 80%;
+  }
+  
+  .imagen-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+  }
+  
+  .imagen-preview img {
+    
+    object-fit: cover;
+  }
+  
+  .input-imagen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .icono-imagen {
+    font-size: 3rem; /* Ajusta el tamaño del ícono */
+    color: #888; /* Cambia el color si es necesario */
+    margin-bottom: 0.5rem; /* Espaciado debajo del ícono */
+  }
+
+  .advertencia-tamano-foto{
+    font-size: smaller;
+  }

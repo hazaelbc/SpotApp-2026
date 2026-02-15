@@ -1,0 +1,154 @@
+/* Estilo general para el contenedor */
+.ubicacion-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color:rgb(162, 162, 162); /* Color inicial del texto e ícono */
+    font-size: 16px;
+    transition: color 0.3s ease; /* Transición suave para el hover */
+  }
+  
+  /* Estilo para el ícono */
+  .ubicacion-container svg {
+    margin-right: 8px;
+    font-size: 20px; /* Tamaño del ícono */
+    transition: color 0.3s ease; /* Transición suave para el hover */
+  }
+  
+  /* Hover: Cambia el color del texto e ícono */
+  .ubicacion-container:hover {
+    color: rgb(123, 123, 123); /* Cambia a gris al pasar el cursor */
+    cursor: pointer; /* Cambia el cursor a pointer */
+  }
+  
+  .ubicacion-container:hover svg {
+    color:rgb(123, 123, 123); /* Cambia a gris al pasar el cursor */
+  cursor: pointer; /* Cambia el cursor a pointer */
+  }
+
+.modal-content-selector{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    height: 650px; /* Altura del modal */
+    width: 800px; /* Ancho del modal */
+}
+
+.acordeon-contenedor {
+  display: flex; /* Flexbox para alinear en una sola línea */
+  flex-wrap: nowrap; /* Evita que los elementos se envuelvan */
+  justify-content: flex-start; /* Espacio entre los acordeones */
+  align-items: center; /* Alinea verticalmente los acordeones */
+  gap: 5px;
+  width: 100%; /* Asegura que ocupe todo el ancho disponible */
+}
+
+.acordeon-estados {
+  width: 100%;
+  max-width: 180px; /* Reduce el ancho máximo de cada acordeón */
+  padding: 8px; /* Reduce el padding interno */
+  margin: 0; /* Elimina el margen externo */
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #fff;
+  text-align: center;
+}
+
+
+/* Hover en el acordeón */
+.acordeon-estados:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada */
+  border-color: rgba(0, 0, 0, 0.2); /* Borde más visible */
+}
+
+/* Estilo para los títulos del acordeón */
+.acordeon-estados select {
+  width: 30%;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #333; /* Texto oscuro */
+  background-color: transparent; /* Fondo transparente */
+  border: none; /* Sin borde */
+  outline: none; /* Sin borde al enfocar */
+  cursor: pointer;
+  transition: color 0.3s ease; /* Transición de color */
+}
+
+.option-estados {
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #555; /* Texto gris */
+  background-color: transparent; /* Fondo transparente */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* Línea divisoria */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.texto-estados {
+  font-size: 20px;
+  margin-left: 10px; /* Espacio a la izquierda */
+}
+
+.mapa-ubicacion {
+  height: 400px;
+  width: 100%;
+  margin-top: 20px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f0f0f0;
+}
+
+/* Contenedor de los botones */
+.botones-container {
+  display: flex;
+  justify-content: flex-end; /* Alinea los botones a la derecha */
+  gap: 10px; /* Espaciado entre los botones */
+  margin-top: 20px; /* Espaciado superior */
+}
+
+/* Estilo para los botones */
+.boton {
+  padding: 10px 20px; /* Espaciado interno */
+  font-size: 14px; /* Tamaño de fuente */
+  font-weight: bold; /* Texto en negrita */
+  color: #fff; /* Texto blanco */
+  background-color: #41703E; /* Fondo azul */
+  border: none; /* Sin borde */
+  border-radius: 5px; /* Bordes redondeados */
+  cursor: pointer; /* Cambia el cursor al pasar */
+  transition: background-color 0.3s ease; /* Transición suave */
+}
+
+/* Hover para los botones */
+.boton:hover {
+  background-color: #355433; /* Azul más oscuro al pasar el cursor */
+}
+
+/* Botón de cancelar con estilo diferente */
+.boton-cancelar {
+  background-color: #6c2c0a; /* Fondo gris */
+}
+
+.boton-cancelar:hover {
+  background-color: #4f2007; /* Gris más oscuro al pasar el cursor */
+}
+
+.modal-overlay-local {
+  position: absolute;
+  margin-top: -54px;
+  margin-left: -467px;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}

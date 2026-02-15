@@ -1,0 +1,50 @@
+
+*:focus {
+    outline: none;
+  }
+
+  .categoria-trigger {
+    background-color: #F5F5F5;
+    border-radius: 0px; /* Bordes redondeados */
+    color: #1C1C1C; /* Cambia el color del texto (gris oscuro) */
+    font-weight: bold; /* Opcional: hace el texto más grueso */
+    font-size: 14px; /* Ajusta el tamaño del texto */
+    text-align: center; /* Centra el texto */
+    outline: none;
+    white-space: nowrap;
+  }
+  .categoria-trigger:focus {
+    outline: none; /* Asegura que no aparezca al enfocar */
+  }
+
+  .categoria-trigger[aria-selected="true"] { /* Fondo más claro para la categoría seleccionada */
+    color: rgb(172, 172, 172); /* Cambia el color del texto */
+    font-weight: bold; /* Opcional: hace el texto más grueso */
+     /* Opcional: esquinas redondeadas */
+
+  }
+
+  .categoria-trigger:hover {
+    color: rgb(172, 172, 172);
+  }
+
+  .categoria-content{
+    padding-top: 0%;
+    padding-left: 6%;
+    color: rgb(172, 172, 172);
+    font-size: small;
+    white-space: nowrap;
+    text-overflow: ellipsis; /* Agrega puntos suspensivos si el texto es demasiado largo */
+  }
+
+  .ubicacion-container {
+    position: absolute; /* Posiciona el componente encima de otros elementos */
+    margin-top: -24px; /* Alinea verticalmente con el contenedor principal */
+    right: 170px; /* Ajusta la posición horizontal al lado derecho de las categorías */
+    z-index: 10; /* Asegura que esté encima de otros elementos */
+    display: flex;
+    white-space: nowrap; 
+    align-items: center;
+    text-overflow: ellipsis; /* Agrega puntos suspensivos si el texto es demasiado largo */
+    max-width: 250px; /* Ajusta este valor para controlar el truncamiento */
+  }

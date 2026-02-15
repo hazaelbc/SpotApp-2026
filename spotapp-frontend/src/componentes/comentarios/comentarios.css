@@ -1,0 +1,54 @@
+.comentario-container {
+    display: flex;
+    position: relative;
+    gap: 10px; /* Espacio entre la foto y el contenido */
+  }
+  .comentario-nombre {
+    left: 20%;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0;
+    color: #333; /* Color del texto del nombre */
+  }
+  .comentario-foto {
+    margin-top: 25px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .comentario-content {
+
+    flex-direction: column;
+    justify-content: center; /* Centra el contenido verticalmente */
+    gap: 5px; /* Espacio entre el nombre y la barra */
+  }
+  
+  .comentario-barra {
+    margin-top: 25px;
+    flex: 1;
+    padding: 10px 20px;
+    border-radius: 30px;
+    color: white;
+    font-size: 16px;
+    font-weight: light;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center; /* Centra el texto dentro de la barra */
+    height: 50px; /* Asegura que la barra tenga la misma altura que la foto */
+    max-width: 250px; /* Tamaño fijo de la barra */
+    overflow: hidden; /* Oculta el texto que exceda el tamaño */
+    text-overflow: ellipsis; /* Agrega puntos suspensivos al texto que se corta */
+    white-space: nowrap; /* Evita que el texto se divida en varias líneas */
+  }
+  
+  .comentario-texto {
+    text-decoration: none;
+    color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }

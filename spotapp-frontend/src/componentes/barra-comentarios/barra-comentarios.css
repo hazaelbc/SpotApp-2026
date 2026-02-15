@@ -1,0 +1,42 @@
+.barra-comentario-container {
+    display: flex; /* Activa Flexbox */
+    align-items: center; /* Centra los elementos verticalmente */
+    background-color: #f1f1f1;
+    border-radius: 20px;
+    width: 320px; /* Ajusta el ancho */
+    height: 40px; /* Ajusta la altura */
+    padding: 0 10px; /* Espaciado interno */
+    border: 1px solid #aaaaaaa1;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .barra-comentario-input {
+    flex: 1; /* Permite que el input ocupe el espacio disponible */
+    border: none;
+    outline: none;
+    background: none;
+    font-size: 16px; /* Tamaño del texto */
+    color: #333;
+    padding: 0; /* Elimina relleno adicional */
+    margin: 0; /* Elimina márgenes innecesarios */
+  }
+  
+  .barra-comentario-input::placeholder {
+    color: #aaa;
+  }
+  
+  .barra-comentario-boton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex; /* Asegura que el ícono esté centrado */
+    align-items: center;
+    justify-content: center;
+    padding: 0; /* Elimina relleno adicional */
+  }
+  
+  .barra-comentario-icono {
+    color: #888; /* Color del ícono */
+    width: 20px; /* Ajusta el tamaño del ícono */
+    height: 20px;
+  }

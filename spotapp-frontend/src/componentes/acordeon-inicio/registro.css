@@ -1,0 +1,159 @@
+
+/* Evitar reglas globales (body) en hojas de componentes. */
+  
+  .custom-acordeon {
+      width: 500px; /* Variable para el ancho *//* Usa la variable */
+      height: auto; /* Altura fija */
+      overflow: hidden; /* Oculta contenido que exceda el tamaño */
+      border-radius: 8px; /* Esquinas redondeadas */
+      padding: 16px; /* Espaciado interno */
+      
+    }
+    
+    
+    .custom-acordeon .chakra-accordion__panel {
+      height: 100px; /* Altura fija para cada panel */
+      overflow: auto; /* Permite desplazamiento si el contenido excede */
+    }
+    .custom-acordeon .avatar-root {
+      background-color: #E0E0E0 !important; /* Cambia el color de fondo */
+      padding: 8px; /* Espaciado interno */
+      border-radius: 8px; /* Esquinas redondeadas */
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); /* Sombra opcional */
+    }
+    
+    .custom-acordeon .avatar-root:hover {
+      background-color: #e0e0e0 !important; /* Cambia el color al pasar el cursor */
+    }
+    .usuario-item {
+      color: black;
+      display: flex; /* Usamos flexbox para alinear los elementos */
+      align-items: center; /* Centra verticalmente */
+      justify-content:center; /* Espacia los elementos horizontalmente */
+      white-space: nowrap; /* Evita saltos de línea */
+      overflow: hidden; /* Oculta el contenido que exceda el ancho */
+      text-overflow: ellipsis; /* Agrega puntos suspensivos si el texto es demasiado largo */
+      padding: 8px 16px; /* Espaciado interno */
+  
+    }
+  
+    .usuario-item:hover {
+      opacity: 0.5; /* Reduce la opacidad al pasar el cursor */
+    } 
+  
+  /* Centra el contenido del login-container */
+  .login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Ocupa toda la altura de la ventana */
+    margin: 0;
+    overflow: hidden; /* Evita que el contenido desborde */
+    position: relative; /* Necesario para el fondo animado */
+  }
+  
+  .login-box {
+    color: black;
+    z-index: 1; /* Asegura que el formulario esté encima del fondo animado */
+    width: 400px;
+    padding: 20px;
+    background-color: rgba(255, 255, 255, 0.7); /* Fondo semitransparente */
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+  }
+  
+  .login-box h1 {
+    margin-bottom: 20px; /* Espaciado debajo del título */
+    font-size: 24px; /* Tamaño del texto */
+    color: #333; /* Color del texto */
+  }
+  
+  .login-box input {
+    width: 100%; /* Ocupa todo el ancho */
+    padding: 10px; /* Espaciado interno */
+    margin-bottom: 15px; /* Espaciado entre inputs */
+    border: 1px solid #ccc; /* Borde gris claro */
+    border-radius: 4px; /* Bordes redondeados */
+    font-size: 16px; /* Tamaño del texto */
+  }
+  
+  .login-box button {
+    width: 70%; /* Botón ocupa todo el ancho */
+    padding: 10px; /* Espaciado interno */
+    background-color: #278346; /* Color azul */
+    color: white; /* Texto blanco */
+    border: none; /* Sin borde */
+    border-radius: 4px; /* Bordes redondeados */
+    font-size: 16px; /* Tamaño del texto */
+    cursor: pointer; /* Cambia el cursor al pasar sobre el botón */
+  }
+  
+  .login-box button:hover {
+    background-color: #276c3e /* Azul más oscuro al pasar el cursor */
+  }
+  
+  .label{
+    color: black;
+    display: block; /* Asegura que el label ocupe toda la línea */
+    text-align: left; /* Alinea el texto a la izquierda */
+    margin-bottom: 5px; /* Espaciado debajo del label */
+    font-size: 14px;
+  }
+  
+  .input-redondo {
+    display: none; /* Oculta el input de archivo */
+  }
+  
+  .label-redondo {
+    color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100px; /* Ancho del círculo */
+    height: 100px; /* Altura del círculo */
+    border-radius: 50%; /* Hace el contenedor circular */
+    background-color: #f0f0f0; /* Color de fondo */
+    cursor: pointer; /* Cambia el cursor al pasar sobre el círculo */
+    overflow: hidden; /* Oculta cualquier contenido que exceda el círculo */
+    border: 2px solid #ccc; /* Borde opcional */
+    transition: all 0.3s ease; /* Transición para efectos visuales */
+  }
+  
+  .label-redondo:hover {
+    border-color: #007bff; /* Cambia el color del borde al pasar el cursor */
+  }
+  
+  .label-redondo img {
+    width: 100%; /* Asegura que la imagen ocupe todo el círculo */
+    height: 100%; /* Asegura que la imagen ocupe todo el círculo */
+    object-fit: cover; /* Ajusta la imagen para que no se deforme */
+  }
+  
+  .avatar-container {
+    display: flex; /* Usamos flexbox para centrar */
+    justify-content: center; /* Centra horizontalmente */
+    align-items: center; /* Centra verticalmente */
+    flex-direction: column; /* Asegura que los elementos estén en columna */
+    width: 100%; /* Ocupa todo el ancho disponible */
+    margin-bottom: 20px; /* Espaciado inferior opcional */
+  }
+  
+  .checkbox{
+    display: flex; /* Usamos flexbox para centrar */
+    justify-content: center; /* Centra horizontalmente */
+    align-items: center; /* Centra verticalmente */
+    width: 100%; /* Ocupa todo el ancho disponible */
+    margin-bottom: 20px; /* Espaciado inferior opcional */
+  }
+
+  .logo-app-registro{
+    position: fixed; /* Fija el logo en una posición específica */
+    top: 3rem; /* Ajusta la posición vertical */
+    left: 35.2rem; /* Ajusta la posición horizontal */
+    width: 14rem; /* Ancho del logo */
+    height: auto; /* Mantiene la proporción del logo */
+    cursor: pointer; /* Cambia el cursor al pasar sobre el logo */
+    transition: transform 0.3s ease, opacity 0.3s ease; /* Suaviza las transiciones */
+  
+  }

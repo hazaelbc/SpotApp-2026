@@ -1,0 +1,33 @@
+.categoria-general-container {
+  position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Ajusta columnas responsivas */
+    gap: 20px; /* Espacio entre tarjetas */
+    width: 500%; /* Ajusta el ancho del contenedor */
+    height: 600px;
+    overflow-y: auto; /* Habilita el scroll vertical */
+    overflow-x: hidden;
+    left: 0%; /* Centra horizontalmente */
+    transform: translateX(-26.5%); /* Ajusta el centro horizontal */
+    /*max-width: 800px; /* Ancho máximo */
+    margin: 5px auto; /* Centra el contenedor horizontalmente y agrega margen superior */
+    padding: 20px; /* Espaciado interno */
+    background-color: #F5F5F5; /* Fondo claro */
+    border-radius: 8px; /* Esquinas redondeadas */
+
+  }
+  
+  .categoria-general-title {
+    color: #1C1C1C; /* Color del título */
+    font-size: 24px; /* Tamaño del título */
+    font-weight: bold; /* Negrita */
+    margin-bottom: 16px; /* Espaciado debajo del título */
+    text-align: center; /* Centra el texto */
+  }
+  
+  .categoria-general-text {
+    color: #1C1C1C; /* Color del texto */
+    font-size: 16px; /* Tamaño del texto */
+    line-height: 1.5; /* Altura de línea */
+    text-align: center; /* Centra el texto */
+  }

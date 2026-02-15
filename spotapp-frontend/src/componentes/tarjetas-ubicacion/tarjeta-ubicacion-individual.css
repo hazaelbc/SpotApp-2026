@@ -1,0 +1,126 @@
+.tarjeta {
+  position: relative;
+  width: 270px;
+  height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tarjeta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+}
+
+/* Imagen de fondo */
+.tarjeta-imagen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  filter: none;
+  transition: filter 0.5s ease-in;
+  transition-delay: 1.5s; /* Se activa después del título */
+}
+
+/* Blur al hacer hover */
+.tarjeta:hover .tarjeta-imagen {
+  filter: blur(5px);
+}
+
+/* Contenido encima */
+.tarjeta-contenido {
+  position: absolute;
+  bottom: 0;
+  z-index: 2;
+  padding: 20px;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Título */
+.tarjeta-titulo {
+  position: static;
+  font-size: 25px;
+  font-weight: bold;
+  margin: 0;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+  transition-delay: 0s;
+
+  white-space: normal; /* Permite que el texto salte de línea */
+  word-wrap: break-word; /* Fuerza el salto de línea si es necesario */
+  word-break: break-word;
+}
+
+/* Oculta el título después de 1s */
+.tarjeta:hover .tarjeta-titulo {
+  opacity: 0;
+  transition-delay: 1s;
+}
+
+
+/* Descripción */
+.tarjeta-descripcion {
+  position: fixed; /* Cambiado de fixed a absolute */
+  top: 50%; /* Centra verticalmente */
+  left: 50%; /* Centra horizontalmente */
+  transform: translate(-50%, -50%); /* Ajusta el punto de referencia al centro */
+  font-size: 14px;
+  color: white;
+  opacity: 0;
+  visibility: hidden;
+  padding: 10px;
+  border-radius: 8px;
+  line-height: 1.4;
+  transition: opacity 0.5s ease, visibility 0s linear 2s;
+  white-space: normal;
+  word-wrap: break-word;
+  width: 240px;
+  overflow-y: visible; /* Permite que el texto se muestre completo */
+  text-align: center; /* Centra el texto */
+}
+
+/* Muestra la descripción después */
+.tarjeta:hover .tarjeta-descripcion {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 1.5s, 1.5s;
+}
+
+
+/* Reinicio rápido al salir */
+.tarjeta:not(:hover) .tarjeta-imagen,
+.tarjeta:not(:hover) .tarjeta-descripcion,
+.tarjeta:not(:hover) .tarjeta-titulo {
+  transition-delay: 0s !important;
+}
+
+/* Estilo inicial para la calificación */
+.tarjeta-calificacion {
+  border-radius: 8px; /* Bordes redondeados */
+  width: 170px;
+  padding: 5px; /* Espaciado interno */
+  opacity: 1;
+  transition: opacity 0.5s ease;
+  transition-delay: 0s;
+}
+
+
+/* Oculta la calificación después de 1s al hacer hover */
+.tarjeta:hover .tarjeta-calificacion {
+  opacity: 0;
+  transition-delay: 1s;
+}
+
+/* Reinicio rápido al salir del hover */
+.tarjeta:not(:hover) .tarjeta-descripcion,
+.tarjeta:not(:hover) .tarjeta-imagen,
+.tarjeta:not(:hover) .tarjeta-titulo,
+.tarjeta:not(:hover) .tarjeta-calificacion {
+  transition-delay: 0s;
+}

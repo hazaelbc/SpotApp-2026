@@ -1,0 +1,26 @@
+.ccollage {
+    width: 30%; /* Ajusta el ancho al costado izquierdo */
+    height: 100%; /* Ocupa toda la altura disponible */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+.collage-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-auto-rows: 100px;
+    gap: 10px;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  .collage-foto {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+  }

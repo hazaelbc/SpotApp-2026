@@ -1,0 +1,29 @@
+.breadcrumb-link-2 {
+    color: rgb(123, 123, 123); /* Color negro por defecto */
+    text-decoration: none;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    font-weight: bold; /* Negrita para destacar */
+    gap: 5px; /* Espaciado entre el ícono y el texto */
+    transition: color 0.3s ease; /* Transición suave al cambiar de color */
+    z-index: 1000; /* Asegura que el enlace esté encima de otros elementos */
+  }
+  
+  /* Cambia el color al pasar el mouse */
+  .breadcrumb-link-2:hover {
+    color: rgb(162, 162, 162); /* Cambia a gris al pasar el cursor */
+    cursor: pointer; /* Cambia el cursor a pointer */
+  }
+  
+  /* Estilo para el enlace activo */
+  .breadcrumb-link-2.active {
+    color: rgb(123, 123, 123); /* Cambia a azul cuando está seleccionado */
+    font-weight: bold; /* Negrita para destacar */
+  }
+  
+  /* Separador del breadcrumb */
+  .Breadcrumb.Separator {
+    color: #ccc; /* Color gris para el separador */
+    margin: 0 10px; /* Espaciado horizontal */
+  }

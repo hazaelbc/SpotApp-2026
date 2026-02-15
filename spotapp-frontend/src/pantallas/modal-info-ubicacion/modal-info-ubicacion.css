@@ -1,0 +1,165 @@
+.modal-overlay-info-ubicacion {
+  position: absolute;
+  margin-top: -71px;
+  margin-left: -377px;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.modal-content-info {
+  background: white;
+  padding: 20px;
+  border-radius: 3px;
+  height: 400px;
+  width: 80%;
+  max-width: 600px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Nuevo: contenedor que contiene ambas pantallas */
+.content-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Oculta y muestra las pantallas con transiciones suaves */
+.visible {
+  opacity: 1;
+  pointer-events: all;
+  z-index: 1;
+  transition: opacity 0.3s ease;
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* Contenido de la pantalla "info" */
+.info {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* Contenedor del mapa */
+.map-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* Mapa Leaflet */
+.map {
+  margin-top: 10px;
+  width: 100%;
+  height: 90%;
+  border-radius: 8px;
+}
+
+/* Imagen del lugar */
+.info-image {
+  margin-top: 10px;
+  width: 40%;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 5px;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.info-image:hover {
+  transform: scale(1.01);
+}
+
+.info-title {
+  color: black;
+  font-size: 25px;
+  font-weight: bold;
+  margin-top: 25px;
+  margin-left: 250px;
+}
+
+.calificacion {
+  height: 30px;
+  margin-top: -5px;
+  margin-left: 240px;
+  border-radius: 8px;
+  width: 90px;
+  padding: 5px;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+}
+
+/* Icono redondo del usuario en el mapa */
+.custom-user-icon .user-icon {
+  width: 60px;
+  height: 60px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+
+.comentarios-container-local {
+  position: inherit;
+  margin-top: 100px;
+  margin-left: 240px;
+  max-height: 180px; /* Altura fija del contenedor */
+  overflow: hidden; /* Oculta el contenido que excede el contenedor */
+  padding: 10px; /* Espaciado interno */
+  border-radius: 10px; /* Bordes redondeados */
+
+}
+
+.comentarios-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Espacio entre los comentarios */
+}
+
+.comentarios-container-local .comentarios-scroll {
+  flex-direction: column;
+  gap: 10px; /* Espacio entre los comentarios */
+  animation: scrollComentarios 10s linear infinite; /* Animación de scroll */
+}
+
+@keyframes scrollComentarios {
+  0% {
+    transform: translateY(0); /* Inicio del scroll */
+  }
+  100% {
+    transform: translateY(-100%); /* Desplaza todo el contenido hacia arriba */
+  }
+}
+
+.barra-comentario-container-local {
+  display: inherit;
+  margin-top: 255px;
+  align-items: center;
+  margin-left: 20px;
+}
+
+.info-details{
+  position: inherit;
+}

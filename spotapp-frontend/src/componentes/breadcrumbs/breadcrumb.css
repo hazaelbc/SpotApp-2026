@@ -1,0 +1,17 @@
+/* Estilo base para los enlaces */
+.breadcrumb-link {
+  color: #1C1C1C; /* Color negro por defecto */
+  text-decoration: none; /* Sin subrayado */
+  transition: color 0.3s ease; /* Transición suave */
+}
+
+/* Estilo para el enlace activo */
+.breadcrumb-link.active {
+  color: rgb(123, 123, 123); /* Cambia a azul cuando está seleccionado */
+  font-weight: bold; /* Negrita para destacar */
+}
+
+.breadcrumb-link:hover {
+  color: rgb(162, 162, 162); /* Cambia a gris al pasar el cursor */
+  cursor: pointer; /* Cambia el cursor a pointer */
+}

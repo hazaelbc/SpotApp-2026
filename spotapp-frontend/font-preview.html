@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview de Fuentes</title>
+  <style>
+    body {
+      padding: 40px;
+      background: #f5f5f5;
+    }
+    .sample {
+      background: white;
+      padding: 30px;
+      margin-bottom: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .font-sans {
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .font-serif {
+      font-family: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    }
+    .font-mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    h1 { margin-top: 0; color: #333; }
+    h2 { color: #666; margin-bottom: 8px; }
+    .sizes { margin-top: 20px; }
+    .size-demo { margin: 10px 0; }
+    
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .color-card {
+      text-align: center;
+    }
+    .color-swatch {
+      width: 100%;
+      height: 100px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .color-swatch:hover {
+      transform: scale(1.05);
+    }
+    .color-code {
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+      background: #f0f0f0;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: all;
+    }
+    .color-code:hover {
+      background: #e0e0e0;
+    }
+    .color-name {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+  </style>
+  <script>
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text);
+      alert('Color copiado: ' + text);
+    }
+  </script>
+</head>
+<body>
+  
+  <div class="sample font-sans">
+    <h2>font-sans (System Sans-Serif)</h2>
+    <h1>SPOTAPP - Título Principal</h1>
+    <p style="font-size: 20px;">Subtítulo o sección importante</p>
+    <p>Texto normal: Esta es la fuente más común para apps modernas. Es limpia, legible y profesional.</p>
+    <p style="font-size: 14px;">Texto pequeño: Ideal para descripciones, metadatos, información secundaria.</p>
+    
+    <div class="sizes">
+      <div class="size-demo" style="font-size: 30px; font-weight: bold;">30px Bold - Títulos grandes</div>
+      <div class="size-demo" style="font-size: 24px; font-weight: 600;">24px Semi-bold - Subtítulos</div>
+      <div class="size-demo" style="font-size: 16px;">16px Regular - Texto normal</div>
+      <div class="size-demo" style="font-size: 14px;">14px Regular - Texto pequeño</div>
+      <div class="size-demo" style="font-size: 12px;">12px Regular - Texto muy pequeño</div>
+    </div>
+  </div>
+
+  <div class="sample font-serif">
+    <h2>font-serif (Serif Clásico)</h2>
+    <h1>SPOTAPP - Título Principal</h1>
+    <p style="font-size: 20px;">Subtítulo o sección importante</p>
+    <p>Texto normal: Esta fuente tiene un estilo más clásico y editorial. Buena para contenido de lectura larga.</p>
+    <p style="font-size: 14px;">Texto pequeño: Ideal para descripciones, metadatos, información secundaria.</p>
+    
+    <div class="sizes">
+      <div class="size-demo" style="font-size: 30px; font-weight: bold;">30px Bold - Títulos grandes</div>
+      <div class="size-demo" style="font-size: 24px; font-weight: 600;">24px Semi-bold - Subtítulos</div>
+      <div class="size-demo" style="font-size: 16px;">16px Regular - Texto normal</div>
+      <div class="size-demo" style="font-size: 14px;">14px Regular - Texto pequeño</div>
+      <div class="size-demo" style="font-size: 12px;">12px Regular - Texto muy pequeño</div>
+    </div>
+  </div>
+
+  <div class="sample font-mono">
+    <h2>font-mono (Monospace)</h2>
+    <h1>SPOTAPP - Título Principal</h1>
+    <p style="font-size: 20px;">Subtítulo o sección importante</p>
+    <p>Texto normal: Esta fuente tiene un ancho fijo por carácter. Buena para código o datos técnicos.</p>
+    <p style="font-size: 14px;">Texto pequeño: Ideal para descripciones, metadatos, información secundaria.</p>
+    
+    <div class="sizes">
+      <div class="size-demo" style="font-size: 30px; font-weight: bold;">30px Bold - Títulos grandes</div>
+      <div class="size-demo" style="font-size: 24px; font-weight: 600;">24px Semi-bold - Subtítulos</div>
+      <div class="size-demo" style="font-size: 16px;">16px Regular - Texto normal</div>
+      <div class="size-demo" style="font-size: 14px;">14px Regular - Texto pequeño</div>
+      <div class="size-demo" style="font-size: 12px;">12px Regular - Texto muy pequeño</div>
+    </div>
+  </div>
+
+  <div class="sample">
+    <h2>Paleta de Colores - SpotApp</h2>
+    <div class="color-grid">
+      <div class="color-card">
+        <div class="color-swatch" style="background-color: #A22522;" onclick="copyToClipboard('#A22522')"></div>
+        <div class="color-code" onclick="copyToClipboard('#A22522')">#A22522</div>
+        <div class="color-name">Color Principal - Marca</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
