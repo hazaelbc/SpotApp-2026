@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AcordeonInicio from "./componentes/acordeon-inicio/acordeon.jsx";
 import Registro from "./componentes/acordeon-inicio/registro.jsx";
-import Lobby from "./pantallas/lobby/Pagina-maestra.jsx";
+import Lobby from "./pantallas/lobby/index.jsx";
 import ProtectedRoute from "./protected_route.jsx";
 import RedirectIfAuthenticated from "./redirect_if_authenticated.jsx";
 import { UserProvider } from "./userProvider.jsx";
