@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FiSearch } from "react-icons/fi";
 
-export const BarraBusqueda = ({ onSearch }) => {
+export const BarraBusqueda = ({ onSearch, className = "" }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleSubmit = (e) => {
@@ -16,7 +16,7 @@ export const BarraBusqueda = ({ onSearch }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full">
+    <form onSubmit={handleSubmit} className={`w-full ${className}`}>
       <div className="relative flex items-center">
         <input
           type="text"
