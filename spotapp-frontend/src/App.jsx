@@ -5,6 +5,7 @@ import Registro from "./componentes/acordeon-inicio/registro.jsx";
 import Lobby from "./pantallas/lobby/index.jsx";
 import ProtectedRoute from "./protected_route.jsx";
 import RedirectIfAuthenticated from "./redirect_if_authenticated.jsx";
+import SobreNosotros from "./pantallas/sobre_nosotros";
 import { UserProvider } from "./userProvider.jsx";
 
 const App = () => {
@@ -38,6 +39,14 @@ const App = () => {
               <ProtectedRoute>
                 <Lobby />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sobre-nosotros"
+            element={
+              <RedirectIfAuthenticated>
+                <SobreNosotros />
+              </RedirectIfAuthenticated>
             }
           />
             </Routes>
