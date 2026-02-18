@@ -36,7 +36,7 @@ const Header_Login = () => {
           <span onClick={() => navigate("/registro") } className="text-[10px] sm:text-xs lg:text-base font-medium hover:text-gray-400 cursor-pointer uppercase tracking-tight sm:tracking-wide whitespace-nowrap">
             Registrarse
           </span>
-          <span onClick={() => navigate("/contacto") } className="text-[10px] sm:text-xs lg:text-base font-medium hover:text-gray-400 cursor-pointer uppercase tracking-tight sm:tracking-wide whitespace-nowrap">
+          <span onClick={() => navigate("/sobre-nosotros") } className="text-[10px] sm:text-xs lg:text-base font-medium hover:text-gray-400 cursor-pointer uppercase tracking-tight sm:tracking-wide whitespace-nowrap">
             Sobre Nosotros
           </span>
         </div>
