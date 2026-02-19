@@ -52,6 +52,39 @@ export class UserController {
     };
   }
 
+  @Post('register')
+  async register(@Body() body: { nombre: string; email: string; contrasena: string }) {
+    const { nombre, email, contrasena } = body;
+
+    // Validar que los campos requeridos estén presentes
+    if (!nombre || !email || !contrasena) {
+      throw new BadRequestException('Nombre, email y contraseña son requeridos');
+    }
+
+    // Crear el DTO para el usuario
+    const createUserDto: CreateUserDto = {
+      nombre,
+      email,
+      contrasena,
+      provider: 'local',
+      emailVerificado: false,
+    };
+
+    // Crear el usuario en la base de datos
+    const user = await this.userService.create(createUserDto);
+
+    return {
+      message: 'Usuario registrado exitosamente',
+      user: {
+        id: user.id,
+        nombre: user.nombre,
+        email: user.email,
+        fotoPerfil: user.fotoPerfil,
+      },
+    };
+  }
+
+
   @Get('basic')
   findBasic() {
     return this.userService.findBasic();
