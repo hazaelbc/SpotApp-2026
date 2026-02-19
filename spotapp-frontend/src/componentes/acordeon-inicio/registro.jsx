@@ -19,7 +19,7 @@ const Registro = ({ onSubmit }) => {
     return emailRegex.test(email);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setNombreError("");
     setEmailError("");
@@ -47,8 +47,8 @@ const Registro = ({ onSubmit }) => {
     if (!password.trim()) {
       setPasswordError("La contraseña es obligatoria");
       hasError = true;
-    } else if (password.length < 6) {
-      setPasswordError("La contraseña debe tener al menos 6 caracteres");
+    } else if (password.length < 8) {
+      setPasswordError("La contraseña debe tener al menos 8 caracteres");
       hasError = true;
     }
 
@@ -60,9 +60,33 @@ const Registro = ({ onSubmit }) => {
 
     if (hasError) return;
 
-    // Si hay callback onSubmit, ejecutarlo
-    if (onSubmit) {
-      onSubmit({ nombre, email, password });
+    // Enviar datos al backend
+    try {
+      const response = await fetch('http://localhost:3000/users/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre,
+          email,
+          contrasena: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Registro exitoso
+        alert('¡Registro exitoso! Bienvenido ' + data.user.nombre);
+        navigate('/'); // Redirigir a inicio de sesión
+      } else {
+        // Error del servidor
+        setEmailError(data.message || 'Error al registrar usuario');
+      }
+    } catch (error) {
+      console.error('Error al registrar:', error);
+      setEmailError('Error de conexión con el servidor');
     }
   };
 
