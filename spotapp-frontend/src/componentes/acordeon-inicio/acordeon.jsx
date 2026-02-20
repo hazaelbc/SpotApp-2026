@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../userProvider.jsx";
-
+import { signInWithGoogle } from "../../config/firebase";
 import Header_Login from "../Header_Login";
 
 
@@ -12,7 +12,7 @@ const Login = () => {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const { setUser } = useUser(); 
-  const [success, setSuccess] = useState(""); // Estado para el mensaje de éxito
+  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
   const vantaRef = useRef(null);
 
@@ -38,6 +38,48 @@ const Login = () => {
     
     // Si el email es válido, navegar a recuperar contraseña
     navigate("/recuperar-contrasena", { state: { email } });
+  };
+
+  // Manejar inicio de sesión con Google
+  const handleGoogleLogin = async () => {
+    console.log('Iniciando sesión con Google...');
+    try {
+      // Autenticar con Google usando Firebase
+      const user = await signInWithGoogle();
+      console.log('Usuario de Google obtenido:', user);
+      
+      // Intentar iniciar sesión o registrar al usuario en el backend
+      const response = await fetch('http://localhost:3000/users/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: user.displayName,
+          email: user.email,
+          contrasena: user.uid,
+          googleId: user.uid,
+          provider: 'google',
+          fotoPerfil: user.photoURL,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Respuesta del backend:', data);
+
+      if (response.ok) {
+        // Login exitoso (ya sea nuevo registro o usuario existente)
+        console.log("Inicio de sesión con Google exitoso:", data);
+        setUser(data.user);
+        localStorage.setItem("authToken", "google-token-" + user.uid);
+        navigate('/lobby');
+      } else {
+        setEmailError(data.message || 'Error al iniciar sesión con Google');
+      }
+    } catch (error) {
+      console.error('Error al iniciar sesión con Google:', error);
+      setEmailError('Error al conectar con Google: ' + error.message);
+    }
   };
 
 
@@ -147,7 +189,7 @@ const Login = () => {
               {/* inicio de sesion con google  */}
               <button 
                 type="button"
-                onClick={() => navigate("/recuperar-contrasena")}
+                onClick={handleGoogleLogin}
                 className="w-full mx-auto px-4 py-3 text-gray-600 rounded-3xl text-lg cursor-pointer border border-gray-300 transition-all duration-300 hover:bg-gray-50 hover:border-gray-400 hover:scale-[1.02] hover:shadow-lg flex items-center justify-center gap-3" style={{ backgroundColor: 'white'}}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

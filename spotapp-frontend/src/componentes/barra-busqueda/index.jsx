@@ -23,14 +23,22 @@ export const BarraBusqueda = ({ onSearch, className = "" }) => {
           value={searchTerm}
           onChange={handleChange}
           placeholder="Buscar en la Lobby..."
-          className="w-full px-3 py-2 pl-5 sm:px-4 sm:py-3 sm:pl-7 text-sm sm:text-base text-gray-700 bg-white border border-gray-300 rounded-3xl focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-transparent shadow-sm transition duration-200"
+          className="w-full px-3 py-1.5 pl-5 sm:px-4 sm:py-1.5 sm:pl-4 text-sm 
+          sm:text-base bg-white dark:bg-[var(--bg-secondary)] text-gray-700 
+          dark:text-[var(--text-primary)] border border-gray-300 dark:border-[var(--border-color)] 
+          rounded-lg placeholder:text-gray-400 dark:placeholder:text-[var(--text-tertiary)] 
+          focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-[#3D5A6F] 
+          focus:border-transparent shadow-sm transition duration-100 ease-in"
         />
         
         <button
           type="submit"
           className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 flex items-center justify-center"
         >
-          <FiSearch className="text-gray-400 text-2xl sm:text-3xl" />
+          <FiSearch 
+            className="text-2xl sm:text-3xl text-gray-400 dark:text-[var(--text-tertiary)] transition-colors duration-200" 
+            style={{ strokeWidth: 1 }}
+          />
         </button>
       </div>
     </form>

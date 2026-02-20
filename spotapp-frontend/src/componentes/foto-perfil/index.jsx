@@ -1,7 +1,7 @@
 import React from "react";
 
 export const FotoPerfil = ({ 
-  imagen = "/foto_perfil_default.webp",
+  imagen = "/fp_default.webp",
   alt = "Foto de perfil",
   className = "",
   onClick
@@ -9,7 +9,7 @@ export const FotoPerfil = ({
   return (
     <div 
       onClick={onClick}
-      className={`rounded-full overflow-hidden border border-gray-300 shadow-lg cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${className}`}
+      className={`rounded-lg overflow-hidden border border-gray-300 shadow-lg cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${className}`}
     >
       <img 
         src={imagen} 
