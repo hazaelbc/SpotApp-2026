@@ -4,13 +4,13 @@ import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyD1UBXhVtbQohlfeJam-VM8-cNYbq4zhBc",
-  authDomain: "spotapp-4a327.firebaseapp.com",
-  projectId: "spotapp-4a327",
-  storageBucket: "spotapp-4a327.firebasestorage.app",
-  messagingSenderId: "680550237125",
-  appId: "1:680550237125:web:2c64af1461508c66aec1ac",
-  measurementId: "G-SJJZ42LS4V"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
