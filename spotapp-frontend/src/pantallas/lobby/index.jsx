@@ -3,7 +3,7 @@ import BarraBusqueda from "../../componentes/barra-busqueda";
 import FotoPerfil from "../../componentes/foto-perfil";
 import ThemeToggle from "../../componentes/themeToggle";
 import { useUser } from "../../userProvider";
-import { FiBell, FiMail } from "react-icons/fi";
+import { FiBell, FiMail, FiHome, FiCompass } from "react-icons/fi";
 
 export const Lobby = ({ children }) => {
   const { user } = useUser();
@@ -24,8 +24,20 @@ export const Lobby = ({ children }) => {
             {/* Línea divisora */}
             <div className="h-6 sm:h-8 w-px bg-gray-300 dark:bg-[var(--border-color)] mx-1 sm:mx-2"></div>
             
-            {/* Herramientas: notificaciones y mensajes */}
+            {/* Herramientas: home, explorar, notificaciones y mensajes */}
             <div className="flex items-center gap-1 sm:gap-3">
+              <button 
+                className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
+                aria-label="Home"
+              >
+                <FiHome className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
+              </button>
+              <button 
+                className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
+                aria-label="Explorar"
+              >
+                <FiCompass className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
+              </button>
               <button 
                 className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
                 aria-label="Notificaciones"
