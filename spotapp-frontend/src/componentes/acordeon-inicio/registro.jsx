@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header_Login from "../Header_Login";
+import { signInWithGoogle } from "../../config/firebase";
 
 const Registro = ({ onSubmit }) => {
   const [nombre, setNombre] = useState("");
@@ -82,7 +83,11 @@ const Registro = ({ onSubmit }) => {
         navigate('/'); // Redirigir a inicio de sesión
       } else {
         // Error del servidor
-        setEmailError(data.message || 'Error al registrar usuario');
+        if (response.status === 400 && data.message && data.message.includes('ya existe')) {
+          setEmailError('Este correo ya está registrado. Por favor inicia sesión.');
+        } else {
+          setEmailError(data.message || 'Error al registrar usuario');
+        }
       }
     } catch (error) {
       console.error('Error al registrar:', error);
@@ -90,9 +95,52 @@ const Registro = ({ onSubmit }) => {
     }
   };
 
-  const handleGoogleSignup = () => {
-    // Lógica para registro con Google
-    console.log("Registro con Google");
+  const handleGoogleSignup = async () => {
+    console.log('Iniciando registro con Google...');
+    try {
+      // Autenticar con Google usando Firebase
+      console.log('Llamando a signInWithGoogle...');
+      const user = await signInWithGoogle();
+      console.log('Usuario de Google obtenido:', user);
+      
+      // Enviar los datos al backend para crear o autenticar el usuario
+      const response = await fetch('http://localhost:3000/users/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: user.displayName,
+          email: user.email,
+          contrasena: user.uid,
+          googleId: user.uid,
+          provider: 'google',
+          fotoPerfil: user.photoURL,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Respuesta del backend:', data);
+
+      if (response.ok) {
+        alert('¡Registro exitoso con Google! Bienvenido ' + data.user.nombre);
+        navigate('/lobby');
+      } else {
+        // Si el usuario ya existe
+        if (data.message && data.message.includes('ya existe')) {
+          // Usuario ya registrado, redirigir a login
+          alert('Este correo ya está registrado. Redirigiendo a inicio de sesión...');
+          navigate('/'); // Redirigir a login
+        } else {
+          setEmailError(data.message || 'Error al registrar con Google');
+        }
+      }
+    } catch (error) {
+      console.error('Error completo al registrarse con Google:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      setEmailError('Error al conectar con Google: ' + error.message);
+    }
   };
 
   return (

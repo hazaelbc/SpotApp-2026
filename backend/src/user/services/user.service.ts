@@ -87,6 +87,13 @@ export class UserService {
     return this.prismaService.usuario.findMany();
   }
 
+  // Obtener un usuario por email
+  async findByEmail(email: string) {
+    return this.prismaService.usuario.findUnique({
+      where: { email },
+    });
+  }
+
   // Obtener un usuario por ID
   async findOne(id: number) {
     console.log('ID recibido:', id);

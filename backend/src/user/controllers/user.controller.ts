@@ -53,12 +53,36 @@ export class UserController {
   }
 
   @Post('register')
-  async register(@Body() body: { nombre: string; email: string; contrasena: string }) {
-    const { nombre, email, contrasena } = body;
+  async register(@Body() body: { 
+    nombre: string; 
+    email: string; 
+    contrasena: string;
+    googleId?: string;
+    provider?: string;
+    fotoPerfil?: string;
+  }) {
+    const { nombre, email, contrasena, googleId, provider, fotoPerfil } = body;
 
     // Validar que los campos requeridos estén presentes
     if (!nombre || !email || !contrasena) {
       throw new BadRequestException('Nombre, email y contraseña son requeridos');
+    }
+
+    // Verificar si el usuario ya existe (para usuarios de Google)
+    if (provider === 'google') {
+      const existingUser = await this.userService.findByEmail(email);
+      if (existingUser) {
+        // Usuario ya existe, devolver sus datos
+        return {
+          message: 'Usuario ya registrado',
+          user: {
+            id: existingUser.id,
+            nombre: existingUser.nombre,
+            email: existingUser.email,
+            fotoPerfil: existingUser.fotoPerfil,
+          },
+        };
+      }
     }
 
     // Crear el DTO para el usuario
@@ -66,8 +90,10 @@ export class UserController {
       nombre,
       email,
       contrasena,
-      provider: 'local',
-      emailVerificado: false,
+      googleId: googleId || null,
+      provider: provider || 'local',
+      emailVerificado: provider === 'google', // Auto-verificar si es Google
+      fotoPerfil,
     };
 
     // Crear el usuario en la base de datos
@@ -83,7 +109,6 @@ export class UserController {
       },
     };
   }
-
 
   @Get('basic')
   findBasic() {
