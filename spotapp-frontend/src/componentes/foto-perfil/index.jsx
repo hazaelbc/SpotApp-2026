@@ -6,10 +6,14 @@ export const FotoPerfil = ({
   className = "",
   onClick
 }) => { 
+  const isClickable = !!onClick;
+  
   return (
     <div 
       onClick={onClick}
-      className={`rounded-lg overflow-hidden border border-gray-300 shadow-lg cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl ${className}`}
+      className={`rounded-lg overflow-hidden border border-gray-300 shadow-lg transition-all duration-300 ${
+        isClickable ? 'cursor-pointer hover:scale-[1.02] hover:shadow-xl' : ''
+      } ${className}`}
     >
       <img 
         src={imagen} 

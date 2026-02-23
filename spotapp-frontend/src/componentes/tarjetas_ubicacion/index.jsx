@@ -1,5 +1,4 @@
 import React from "react";
-import "./tarjeta-ubicacion-individual.css";
 import Comentario from "../comentarios/comentarios.jsx";
 import Calificacion_ from "../calificacion/calificacion.jsx"
 
@@ -63,23 +62,36 @@ const TarjetaUbicacionIndividual = ({ imagen, nombre, categoria, vistas,califica
   };
   
   return (
-    <div className="tarjeta"  onClick={onClick}>
-      <div className="tarjeta-contenido">
-        <h3 className="tarjeta-titulo">{nombre}</h3>
-        <div className="tarjeta-calificacion">
+    <div 
+      className="group relative w-full sm:w-[270px] h-[350px] sm:h-[400px] rounded-md overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+      onClick={onClick}
+    >
+      {/* Imagen de fondo */}
+      <img 
+        src={imagen} 
+        alt={nombre} 
+        className="absolute inset-0 w-full h-full object-cover z-10 transition-all duration-700 delay-0 group-hover:blur-sm group-hover:delay-700"
+      />
+      
+      {/* Contenido inferior */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 p-4 sm:p-5">
+        {/* Título */}
+        <h3 className="text-xl sm:text-2xl font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mb-2 transition-opacity duration-500 delay-0 group-hover:opacity-0 group-hover:delay-500 break-words">
+          {nombre}
+        </h3>
+        
+        {/* Calificación */}
+        <div className="w-full sm:w-[170px] transition-opacity duration-500 delay-0 group-hover:opacity-0 group-hover:delay-500">
           <Calificacion_ valorInicial={calificacion} onCalificar={handleCalificacion} className="stroke"/>
         </div>
-        
       </div>
-      <div className="tarjeta-contenido">
-        <div className="tarjeta-descripcion">
-          <p className="tarjeta-descripcion">{descripcion}</p>
       
-        </div>
+      {/* Descripción (aparece en hover) */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 opacity-0 invisible transition-all duration-500 delay-0 group-hover:opacity-100 group-hover:visible group-hover:delay-1000 px-4 w-full max-w-[240px]">
+        <p className="text-sm sm:text-base text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] text-center leading-relaxed break-words">
+          {descripcion}
+        </p>
       </div>
-     
-      <img src={imagen} alt={nombre} className="tarjeta-imagen" />
-      
     </div>
   );
 };
