@@ -25,7 +25,7 @@ export const BarraMensajes = ({ children, className = "" }) => {
                     {isOpen ? (
                         <>
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] flex items-center gap-2">
-                                <FiMail className="w-5 h-5" />
+                                <FiMail className="w-4 h-4 sm:w-5 sm:h-5" style={{ strokeWidth: 1 }} />
                                 Mensajes
                             </h2>
                             <button 
@@ -33,7 +33,7 @@ export const BarraMensajes = ({ children, className = "" }) => {
                                 className="p-1.5 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
                                 aria-label="Cerrar barra de mensajes"
                             >
-                                <FiChevronRight className="w-4 h-4 text-gray-600 dark:text-[var(--text-secondary)]" />
+                                <FiChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
                             </button>
                         </>
                     ) : (
@@ -42,7 +42,7 @@ export const BarraMensajes = ({ children, className = "" }) => {
                             className="w-full p-1.5 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
                             aria-label="Abrir barra de mensajes"
                         >
-                            <FiChevronLeft className="w-4 h-4 text-gray-600 dark:text-[var(--text-secondary)] mx-auto" />
+                            <FiChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)] mx-auto" style={{ strokeWidth: 1 }} />
                         </button>
                     )}
                 </div>
@@ -55,8 +55,8 @@ export const BarraMensajes = ({ children, className = "" }) => {
                             className={`w-full flex items-start gap-3 p-3 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 text-left ${!isOpen ? 'justify-center' : ''}`}
                         >
                             {/* Avatar usando FotoPerfil */}
-                            <div className="relative flex-shrink-0">
-                                <FotoPerfil className="w-10 h-10" />
+                            <div className="relative flex-shrink-0 min-w-0">
+                                <FotoPerfil className="w-8 h-8 sm:w-10 sm:h-10 aspect-square rounded-lg overflow-hidden" />
                                 {/* Indicador de no leído cuando está cerrado */}
                                 {!mensaje.leido && !isOpen && (
                                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full border-2 border-white dark:border-[var(--bg-primary)]"></div>

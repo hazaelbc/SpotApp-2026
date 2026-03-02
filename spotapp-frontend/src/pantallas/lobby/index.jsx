@@ -5,15 +5,21 @@ import ThemeToggle from "../../componentes/themeToggle";
 import { BarraLateral } from "../../componentes/barra_lateral";
 import { BarraMensajes } from "../../componentes/barra_mensajes";
 import TarjetaUbicacionIndividual from "../../componentes/tarjetas_ubicacion";
+import BarraHerramientasMovil from "../../componentes/barra_herramientas_movil";
 import { useUser } from "../../userProvider";
-import { FiBell, FiHome, FiCompass, FiSettings, FiTrendingUp,  FiMap } from "react-icons/fi";
+import { FiBell, FiHome, FiCompass, FiSettings, FiTrendingUp, FiMap, FiFilter, FiMail } from "react-icons/fi";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import DropdownFiltrarPor from "../../componentes/filtrar_por_dropdown";
+
 export const Lobby = ({ children }) => {
   const { user } = useUser();
 
   const [location, setLocation] = useState('');
   const [draftLocation, setDraftLocation] = useState('');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isMobileSearchVisible, setIsMobileSearchVisible] = useState(false);
 
   useEffect(() => {
     try {
@@ -31,15 +37,16 @@ export const Lobby = ({ children }) => {
     <div className="flex flex-col h-screen">
       {/* Header */}
       <div className="w-full px-4 transition-colors duration-200 flex-shrink-0">
-        <div className="py-3 border-b border-gray-200 dark:border-[var(--border-color)]">
+          <div className="py-3 border-b border-gray-200 dark:border-[var(--border-color)]">
           {/* Primera línea: Perfil y herramientas */}
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Foto de perfil y nombre */}
+            
+            {/* Foto de perfil y nombre (ocultos en móvil; visibles en sm+) */}
             <FotoPerfil
-              className="w-8 h-8 sm:w-12 sm:h-12 aspect-square rounded-lg overflow-hidden flex-shrink-0"
+              className="hidden sm:block w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 aspect-square rounded-lg overflow-hidden flex-shrink-0"
               onClick={() => console.log("Ir al perfil")}
             />
-            <span className="text-sm sm:text-base font-medium text-gray-900 dark:text-[var(--text-primary)] truncate max-w-[80px] sm:max-w-none">
+            <span className="hidden sm:inline-block text-sm sm:text-base font-medium text-gray-900 dark:text-[var(--text-primary)] truncate max-w-[80px] sm:max-w-none">
               {user?.nombre || "Usuario"}
             </span>
             
@@ -53,7 +60,7 @@ export const Lobby = ({ children }) => {
                   <button className="p-1.5 sm:p-2 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
                     aria-label="Notificaciones"
                     >
-                    <FiBell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
+                    <FiBell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
                   </button>
                 </DropdownMenu.Trigger>
 
@@ -95,8 +102,7 @@ export const Lobby = ({ children }) => {
                     </div>
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-              
+              </DropdownMenu.Root>             
             </div>
             
             {/* Línea divisora - solo visible en pantallas grandes */}
@@ -109,53 +115,12 @@ export const Lobby = ({ children }) => {
                 aria-label="Seleccionar ubicación"
                 title={location || 'Click para seleccionar ubicación'}
               >
-                <FiMap className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
-                <span className="text-sm text-gray-700 dark:text-[var(--text-primary)] max-w-[120px] sm:max-w-[200px] truncate">
+                <FiMap className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
+                <span className="hidden sm:inline-block text-sm text-gray-700 dark:text-[var(--text-primary)] max-w-[120px] sm:max-w-[200px] truncate">
                   {location || 'Click para seleccionar ubicación'}
                 </span>
               </button>
             </div>
-
-            {/* Modal simple para seleccionar ubicación (placeholder para integrar Google Maps) */}
-            {/* {isLocationModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="w-full max-w-2xl bg-white dark:bg-[var(--bg-primary)] rounded-lg shadow-lg overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-[var(--border-color)]">
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Seleccionar ubicación</h3>
-                    <button onClick={() => setIsLocationModalOpen(false)} className="text-sm px-2 py-1">Cerrar</button>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <div className="w-full h-56 bg-gray-100 dark:bg-[color:var(--bg-tertiary)] rounded-md flex items-center justify-center text-sm text-gray-500">
-                      Aquí va el mapa de Google Maps (integrar más adelante)
-                      <div id="map" className="sr-only"></div>
-                    </div>
-
-                    <label className="block text-xs text-gray-600 dark:text-[var(--text-secondary)]">Dirección / Ubicación</label>
-                    <input
-                      value={draftLocation}
-                      onChange={(e) => setDraftLocation(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md bg-white dark:bg-[var(--bg-primary)] text-sm"
-                      placeholder="Escribe o pega una dirección..."
-                    />
-
-                    <div className="flex justify-end gap-2">
-                      <button onClick={() => { setDraftLocation(''); }} className="px-3 py-1 rounded-md">Limpiar</button>
-                      <button
-                        onClick={() => {
-                          const trimmed = draftLocation.trim();
-                          if (trimmed) {
-                            setLocation(trimmed);
-                            localStorage.setItem('spotapp_location', trimmed);
-                          }
-                          setIsLocationModalOpen(false);
-                        }}
-                        className="px-3 py-1 rounded-md bg-blue-600 text-white"
-                      >Guardar</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )} */}
 
             <div className="hidden sm:block h-8 w-px bg-gray-300 dark:bg-[var(--border-color)] mx-2"></div>
 
@@ -166,20 +131,34 @@ export const Lobby = ({ children }) => {
 
             {/* Configuración y Toggle de tema - esquina derecha */}
             <div className="ml-auto flex items-center gap-2">
-              <ThemeToggle />
-              <button 
-                className="flex items-center gap-2 px-3 py-1.5 sm:py-2 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
-                aria-label="Configuración"
-              >
-                <FiSettings className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" />
-                <span className="text-sm font-medium text-gray-700 dark:text-[var(--text-primary)]">Configuración</span>
+              {/* Messages button - visible on mobile only */}
+              <button onClick={() => setIsMessagesOpen(true)} className="sm:hidden p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]" aria-label="Mensajes">
+                <FiMail className="w-5 h-5 text-gray-700 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
               </button>
+              {/* Theme toggle and config stay in header only on sm+ */}
+              <div className="hidden sm:flex items-center gap-2">
+                <ThemeToggle />
+                <button 
+                  className="flex items-center gap-2 px-3 py-1.5 sm:py-2 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
+                  aria-label="Configuración"
+                >
+                  <FiSettings className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
+                  <span className="text-sm font-medium text-gray-700 dark:text-[var(--text-primary)]">Configuración</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Segunda línea: Barra de búsqueda en móvil */}
-          <div className="sm:hidden mt-3">
-            <BarraBusqueda placeholder="Buscar en la Lobby..." />
+          {/* Segunda línea: Barra de búsqueda reducida en móvil + icono de filtrar */}
+          <div className="sm:hidden mt-3 sticky top-12 z-20 px-4">
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <BarraBusqueda placeholder="Buscar en la Lobby..." />
+              </div>
+              <div className="flex-shrink-0">
+                <DropdownFiltrarPor compact onSelect={(v) => { console.log('Filtro seleccionado', v); setIsFiltersOpen(false); }} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -188,34 +167,36 @@ export const Lobby = ({ children }) => {
       <div className="flex flex-1 overflow-hidden">
         {/* Barra lateral - oculta en móvil */}
         <div className="hidden md:block">
-          <BarraLateral />
+          <BarraLateral /> 
         </div>
-
+        <div className="py-4">
+                <div className="h-full border-r border-gray-200 dark:border-[var(--border-color)]"></div>
+        </div>
         {/* Contenido principal */}
         <main className="flex-1 overflow-y-auto">
-          {/* Subheader interno */}
-          <div className="sticky top-0 z-10 bg-[var(--bg-primary)]">
+          {/* Subheader interno (hidden on mobile; replaced by mobile dropdown) */}
+          <div className="hidden sm:block sticky top-0 z-10 ">
             <div className="px-4 py-1">
               {/* Secciones de navegación */}
-              <div className="flex gap-6 justify-center items-center">
-                <button className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200">
-                  <FiHome className="w-4 h-4" />
+              <div className="flex flex-wrap gap-3 sm:gap-6 justify-start sm:justify-center items-center">
+                <button className="flex items-center gap-2 px-2 py-1 text-sm sm:text-base sm:px-4 sm:py-1.5 font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200">
+                  <FiHome className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5" style={{ strokeWidth: 1 }} />
                   <span>Home</span>
                 </button>
                 
                 {/* Línea divisora */}
                 <div className="h-6 w-px bg-gray-300 dark:bg-[var(--border-color)]"></div>
                 
-                <button className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200">
-                  <FiCompass className="w-4 h-4" />
+                <button className="flex items-center gap-2 px-2 py-1 text-sm sm:text-base sm:px-4 sm:py-1.5 font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200">
+                  <FiCompass className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5" style={{ strokeWidth: 1 }} />
                   <span>Explorar</span>
                 </button>
                 
                 {/* Línea divisora */}
                 <div className="h-6 w-px bg-gray-300 dark:bg-[var(--border-color)]"></div>
                 
-                <button className="flex items-center gap-2 px-4 py-1.5 text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200">
-                  <FiTrendingUp className="w-4 h-4" />
+                <button className="flex items-center gap-2 px-2 py-1 text-sm sm:text-base sm:px-4 sm:py-1.5 font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200">
+                  <FiTrendingUp className="w-4 h-4 sm:w-5 sm:h-5 md:w-5 md:h-5" style={{ strokeWidth: 1 }} />
                   <span>Tendencias</span>
                 </button>
               </div>
@@ -226,40 +207,49 @@ export const Lobby = ({ children }) => {
             </div>
           </div>
           
-          {/* Mini header de filtros */}
-          <div className="sticky top-0 z-10 bg-[var(--bg-primary)] px-4 py-0.5">
+          {/* Mini header de filtros (hidden on mobile; categories moved to mobile dropdown) */}
+          <div className="hidden sm:block sticky top-0 z-10 py-0.5">
             {/* Filtros de categorías */}
-            <div className="flex gap-6 justify-center items-center h-8">
+            <div className="flex flex-nowrap sm:flex-wrap gap-2 sm:gap-6 justify-start sm:justify-center items-center h-8 overflow-hidden">
+              {/* Mobile: open filters modal */}
+              <button
+                onClick={() => setIsFiltersOpen(true)}
+                className="sm:hidden flex items-center gap-2 px-2 py-1 text-xs font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg"
+                aria-label="Filtros"
+              >
+                <FiFilter className="w-4 h-4" style={{ strokeWidth: 1 }} />
+                <span>Filtros</span>
+              </button>
               {[
                 {
                   label: "Parques",
                   icon: (
-                    <svg className="w-4 h-4 align-middle" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C7.03 2 2.5 6.03 2.5 11c0 4.97 4.53 9 9.5 9s9.5-4.03 9.5-9c0-4.97-4.53-9-9.5-9zm0 2c3.87 0 7 3.13 7 7 0 3.87-3.13 7-7 7s-7-3.13-7-7c0-3.87 3.13-7 7-7zm0 3a4 4 0 100 8 4 4 0 000-8z"/></svg>
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 align-middle" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C7.03 2 2.5 6.03 2.5 11c0 4.97 4.53 9 9.5 9s9.5-4.03 9.5-9c0-4.97-4.53-9-9.5-9zm0 2c3.87 0 7 3.13 7 7 0 3.87-3.13 7-7 7s-7-3.13-7-7c0-3.87 3.13-7 7-7zm0 3a4 4 0 100 8 4 4 0 000-8z"/></svg>
                   )
                 },
                 {
                   label: "Restaurantes",
                   icon: (
-                    <svg className="w-4 h-4 align-middle" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 align-middle" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   )
                 },
                 {
                   label: "Cafés",
                   icon: (
-                    <svg className="w-4 h-4 align-middle" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14"/><path d="M7 10h10M7 14h10"/></svg>
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 align-middle" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14"/><path d="M7 10h10M7 14h10"/></svg>
                   )
                 },
                 {
                   label: "Museos",
                   icon: (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 21V7a4 4 0 018 0v14"/><path d="M8 21h8"/></svg>
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 21V7a4 4 0 018 0v14"/><path d="M8 21h8"/></svg>
                   )
                 }
               ].map((cat, idx, arr) => (
                 <React.Fragment key={cat.label}>
-                  <button className="flex items-center gap-2 px-4 text-xs sm:text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 bg-transparent">
+                  <button className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-4 text-xs sm:text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 bg-transparent min-w-0">
                     {cat.icon}
-                    <span>{cat.label}</span>
+                    <span className="truncate whitespace-nowrap min-w-0">{cat.label}</span>
                   </button>
                   {idx < arr.length - 1 && (
                     <div className="h-6 w-px bg-gray-300 dark:bg-[var(--border-color)]"></div>
@@ -267,7 +257,7 @@ export const Lobby = ({ children }) => {
                 </React.Fragment>
               ))}
             </div>
-            {/* Línea divisoria con márgenes laterales */}
+            {/* Línea divisoria */}
             <div className="px-4">
               <div className="border-b border-gray-200 dark:border-[var(--border-color)]"></div>
             </div>
@@ -277,17 +267,19 @@ export const Lobby = ({ children }) => {
           <div className="p-4">
           
           {/* Tarjeta de ubicación de prueba */}
-          <TarjetaUbicacionIndividual
-            id={1}
-            userId={1}
-            nombre="Café Central"
-            categoria="Café"
-            descripcion="Un acogedor café en el corazón de la ciudad con excelente café artesanal."
-            imagen="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
-            calificacion={4.5}
-            vistas={120}
-            onClick={() => console.log('Tarjeta clickeada')}
-          />
+          <div className="w-full max-w-[360px] sm:max-w-md md:max-w-lg mx-auto">
+            <TarjetaUbicacionIndividual
+              id={1}
+              userId={1}
+              nombre="Café Central"
+              categoria="Café"
+              descripcion="Un acogedor café en el corazón de la ciudad con excelente café artesanal."
+              imagen="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
+              calificacion={4.5}
+              vistas={120}
+              onClick={() => console.log('Tarjeta clickeada')}
+            />
+          </div>
           
           {children}
           </div>
@@ -298,6 +290,41 @@ export const Lobby = ({ children }) => {
           <BarraMensajes />
         </div>
       </div>
+
+      {/* Sidebar removed - replaced by mobile navigation bar */}
+
+      {/* Messages Drawer (mobile) */}
+      <div className={`fixed inset-y-0 right-0 z-50 w-80 transform bg-white dark:bg-[var(--bg-primary)] shadow-lg transition-transform duration-200 ${isMessagesOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="p-4 h-full overflow-y-auto">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Mensajes</h3>
+            <button onClick={() => setIsMessagesOpen(false)} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]">Cerrar</button>
+          </div>
+          <BarraMensajes />
+        </div>
+      </div>
+
+      {/* Filters Modal (mobile) */}
+      <div className={`${isFiltersOpen ? 'fixed inset-0 z-50 flex items-center justify-center' : 'hidden'}`}>
+        <div className="fixed inset-0 bg-black/50" onClick={() => setIsFiltersOpen(false)}></div>
+        <div className="relative z-60 w-full max-w-sm mx-4 bg-white dark:bg-[var(--bg-primary)] rounded-lg shadow-lg overflow-hidden">
+          <div className="p-4 border-b border-gray-200 dark:border-[var(--border-color)] flex items-center justify-between">
+            <h4 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Filtros</h4>
+            <button onClick={() => setIsFiltersOpen(false)} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]">Cerrar</button>
+          </div>
+          <div className="p-4">
+            <p className="text-sm text-gray-600">Aquí van los filtros (checkboxes y opciones).</p>
+          </div>
+        </div>
+      </div>
+      {/* Mobile navigation bar (fixed, visible only on mobile) */}
+      <BarraHerramientasMovil
+        onExplore={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onSaved={() => console.log('Ir a guardados')}
+        onCreate={() => setIsFiltersOpen(true)}
+        onProfile={() => console.log('Ir al perfil')}
+        onSettings={() => {}}
+      />
     </div>
   )
  };

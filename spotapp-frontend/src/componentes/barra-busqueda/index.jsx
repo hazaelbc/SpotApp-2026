@@ -33,10 +33,11 @@ export const BarraBusqueda = ({ onSearch, className = "" }) => {
         
         <button
           type="submit"
-          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 flex items-center justify-center"
+          aria-label="Buscar"
+          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 flex items-center justify-center p-2"
         >
-          <FiSearch 
-            className="text-2xl sm:text-3xl text-gray-400 dark:text-[var(--text-tertiary)] transition-colors duration-200" 
+          <FiSearch
+            className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-[var(--text-tertiary)] transition-colors duration-200"
             style={{ strokeWidth: 1 }}
           />
         </button>
