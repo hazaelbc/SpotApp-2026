@@ -63,7 +63,7 @@ const Registro = ({ onSubmit }) => {
 
     // Enviar datos al backend
     try {
-      const response = await fetch('http://localhost:3000/users/register', {
+      const response = await fetch('/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ const Registro = ({ onSubmit }) => {
       console.log('Usuario de Google obtenido:', user);
       
       // Enviar los datos al backend para crear o autenticar el usuario
-      const response = await fetch('http://localhost:3000/users/register', {
+      const response = await fetch('/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

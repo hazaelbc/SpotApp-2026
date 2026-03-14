@@ -49,7 +49,7 @@ const Login = () => {
       console.log('Usuario de Google obtenido:', user);
       
       // Intentar iniciar sesión o registrar al usuario en el backend
-      const response = await fetch('http://localhost:3000/users/register', {
+      const response = await fetch('/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,5 @@
 import React from "react";
-import Comentario from "../comentarios/comentarios.jsx";
+import Comentario from "../comentarios";
 import Calificacion_ from "../calificacion/calificacion.jsx"
 
 function safeStringify(obj) {

@@ -40,11 +40,11 @@ const FiltrarPorDropdown = ({ options = defaultOptions, selectedOption, onSelect
     }
 
     return (
-        <div className="sm:hidden relative">
+        <div className="lg:hidden relative">
                 <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
-                    className={"z-50 flex items-center gap-2 " + (compact ? "p-2 rounded-md hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]" : "px-3 py-2 bg-gray-100 dark:bg-[var(--bg-secondary)] text-gray-700 dark:text-[var(--text-primary)] rounded-md hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]")}
+                    className={"z-50 flex items-center gap-2 " + (compact ? "p-2 rounded-md hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" : "px-3 py-2 bg-gray-100 dark:bg-[var(--bg-secondary)] text-gray-700 dark:text-[var(--text-primary)] rounded-md hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500")}
                     aria-expanded={open}
                     aria-controls="filtrar-por-panel"
                     aria-label={compact ? 'Filtrar' : undefined}
@@ -54,7 +54,7 @@ const FiltrarPorDropdown = ({ options = defaultOptions, selectedOption, onSelect
                 </button>
 
             {open && (
-                <div ref={panelRef} id="filtrar-por-panel" className={compact ? "absolute right-0 mt-2 z-50 sm:hidden w-64" : "absolute left-0 right-0 mt-2 z-50 sm:hidden"}>
+                <div ref={panelRef} id="filtrar-por-panel" className={compact ? "absolute right-0 mt-2 z-50 lg:hidden w-64" : "absolute left-0 right-0 mt-2 z-50 lg:hidden"}>
                     <div className="mx-0 bg-white dark:bg-[var(--bg-primary)] rounded-lg shadow-lg ring-1 ring-black/5 p-3 max-h-72 overflow-y-auto w-full">
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Filtros</h3>
@@ -67,17 +67,17 @@ const FiltrarPorDropdown = ({ options = defaultOptions, selectedOption, onSelect
                         {/* Subheader (nav) - mobile */}
                         <div className="mb-2">
                             <div className="flex items-center gap-3 overflow-x-auto">
-                                <button type="button" className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg">
+                                <button type="button" aria-label="Home" className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                     <FiHome className="w-4 h-4" style={{ strokeWidth: 1 }} />
                                     <span>Home</span>
                                 </button>
                                 <div className="h-6 w-px bg-gray-300 dark:bg-[var(--border-color)]"></div>
-                                <button type="button" className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg">
+                                <button type="button" aria-label="Explorar" className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                     <FiCompass className="w-4 h-4" style={{ strokeWidth: 1 }} />
                                     <span>Explorar</span>
                                 </button>
                                 <div className="h-6 w-px bg-gray-300 dark:bg-[var(--border-color)]"></div>
-                                <button type="button" className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg">
+                                <button type="button" aria-label="Tendencias" className="flex items-center gap-2 px-2 py-1 text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                     <FiTrendingUp className="w-4 h-4" style={{ strokeWidth: 1 }} />
                                     <span>Tendencias</span>
                                 </button>
@@ -89,7 +89,7 @@ const FiltrarPorDropdown = ({ options = defaultOptions, selectedOption, onSelect
                             <div className="flex gap-2 overflow-x-auto">
                                 {categories.map((c, i) => (
                                     <React.Fragment key={c}>
-                                        <button type="button" className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg">
+                                        <button type="button" aria-label={`Filtrar por ${c}`} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
                                             <span className="truncate">{c}</span>
                                         </button>
                                         {i < categories.length - 1 && <div className="h-6 w-px bg-gray-300 dark:bg-[var(--border-color)]"></div>}

@@ -23,12 +23,8 @@ export const BarraBusqueda = ({ onSearch, className = "" }) => {
           value={searchTerm}
           onChange={handleChange}
           placeholder="Buscar en la Lobby..."
-          className="w-full px-3 py-1.5 pl-5 sm:px-4 sm:py-1.5 sm:pl-4 text-sm 
-          sm:text-base bg-white dark:bg-[var(--bg-secondary)] text-gray-700 
-          dark:text-[var(--text-primary)] border border-gray-300 dark:border-[var(--border-color)] 
-          rounded-lg placeholder:text-gray-400 dark:placeholder:text-[var(--text-tertiary)] 
-          focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-[#3D5A6F] 
-          focus:border-transparent shadow-sm transition duration-100 ease-in"
+          aria-label="Buscar en la Lobby"
+          className="w-full px-3 py-1.5 pl-5 sm:px-4 sm:py-1.5 sm:pl-4 text-sm sm:text-base bg-white dark:bg-[var(--bg-secondary)] text-gray-700 dark:text-[var(--text-primary)] border border-gray-300 dark:border-[var(--border-color)] rounded-lg placeholder:text-gray-400 dark:placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-[#3D5A6F] focus:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 shadow-sm transition duration-100 ease-in"
         />
         
         <button

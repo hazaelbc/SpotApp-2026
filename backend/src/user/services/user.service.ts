@@ -29,7 +29,7 @@ export class UserService {
       throw new BadRequestException(`El email ${createUserDto.email} ya existe`);
     }
 
-    let fotoPerfil = 'https://via.placeholder.com/150'; // URL predeterminada para la imagen
+    let fotoPerfil = createUserDto.fotoPerfil || 'https://via.placeholder.com/150';
 
     // Subir la imagen a AWS S3 si se proporciona
     if (file) {

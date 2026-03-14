@@ -16,7 +16,7 @@ const Perfil = ({ nombre = "Usuario Anónimo", fotoPerfil , onBackToCategories})
       {/* Imagen de perfil */}
       <img
         className="perfil-avatar"
-        src={fotoPerfil || "https://via.placeholder.com/100"} // Imagen por defecto
+        src={fotoPerfil || '/fp_default.webp'} // Imagen por defecto local
         alt="Foto de perfil"
       />
 

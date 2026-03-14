@@ -63,18 +63,20 @@ export class UserController {
   }) {
     const { nombre, email, contrasena, googleId, provider, fotoPerfil } = body;
 
+    console.log('Register endpoint - provider:', provider, '| email:', email);
+
     // Validar que los campos requeridos estén presentes
     if (!nombre || !email || !contrasena) {
       throw new BadRequestException('Nombre, email y contraseña son requeridos');
     }
 
-    // Verificar si el usuario ya existe (para usuarios de Google)
+    // Para usuarios de Google: si ya existe, hacer login directo
     if (provider === 'google') {
       const existingUser = await this.userService.findByEmail(email);
       if (existingUser) {
-        // Usuario ya existe, devolver sus datos
+        console.log('Google user found, returning existing data for:', email);
         return {
-          message: 'Usuario ya registrado',
+          message: 'Inicio de sesión exitoso',
           user: {
             id: existingUser.id,
             nombre: existingUser.nombre,
@@ -85,6 +87,12 @@ export class UserController {
       }
     }
 
+    // Para registro normal: verificar si el email ya existe
+    const emailExists = await this.userService.findByEmail(email);
+    if (emailExists) {
+      throw new BadRequestException(`El email ${email} ya existe`);
+    }
+
     // Crear el DTO para el usuario
     const createUserDto: CreateUserDto = {
       nombre,
@@ -92,7 +100,7 @@ export class UserController {
       contrasena,
       googleId: googleId || null,
       provider: provider || 'local',
-      emailVerificado: provider === 'google', // Auto-verificar si es Google
+      emailVerificado: provider === 'google',
       fotoPerfil,
     };
 

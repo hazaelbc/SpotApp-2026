@@ -16,13 +16,15 @@ import { ResenaModule } from './user/modules/resena.module';
 import { ComentarioResenaModule } from './comentario/module/comentario-resena.module';
 import { HistorialCalificacionesModule } from './historialCalificaciones/module/historial-calificaciones.module';
 import { HistorialBusquedaModule } from './historialBusqueda/module/historial-busqueda.module';
+import { PlacesModule } from './places/places.module';
 
 @Module({
   imports: [UserModule, 
     ResenaModule, 
     ComentarioResenaModule, 
     HistorialCalificacionesModule,
-    HistorialBusquedaModule],
+    HistorialBusquedaModule,
+    PlacesModule],
   controllers: [AppController],
   providers: [AppService],
 })

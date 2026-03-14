@@ -18,7 +18,7 @@ const BarraHerramientasMovil = ({
 
     return (
         <nav
-            className={`fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-[var(--bg-primary)] border-t border-gray-200 dark:border-[var(--border-color)] shadow-sm md:hidden ${className}`}
+            className={`fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-[var(--bg-primary)] border-t border-gray-200 dark:border-[var(--border-color)] shadow-sm lg:hidden z-50 ${className}`}
             role="navigation"
             aria-label="Barra de herramientas móvil"
         >
