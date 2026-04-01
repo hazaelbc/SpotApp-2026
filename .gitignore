@@ -36,3 +36,6 @@ prisma/.env
 # Cache
 .cache/
 .parcel-cache/
+
+# Claude Code (skills, memory, image cache)
+.claude/

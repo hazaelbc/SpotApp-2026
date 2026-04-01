@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+// API base URL configurable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import "./barra-comentarios.css"; // Asegúrate de tener este archivo CSS
 import { LuSendHorizontal } from "react-icons/lu";
 
@@ -9,7 +11,7 @@ const BarraComentario = ({ onEnviar, resenaId, usuarioId }) => {
     if (comentario.trim() !== "") {
       try {
         // Realiza la solicitud POST al backend
-        const response = await fetch("http://localhost:8080/comentarios-resena", {
+        const response = await fetch(`${API_URL}/comentarios-resena`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

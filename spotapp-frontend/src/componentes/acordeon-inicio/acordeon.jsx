@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
+// API base URL configurable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../userProvider.jsx";
 import { signInWithGoogle } from "../../config/firebase";
@@ -109,7 +111,7 @@ const Login = () => {
     if (hasError) return;
   
     try {
-      const response = await fetch("http://localhost:8080/users/login", {
+      const response = await fetch(`${API_URL}/users/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),

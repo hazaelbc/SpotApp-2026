@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { uploadImage } from "../../utils/uploadImage";
+// API base URL configurable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import { LuCamera } from "react-icons/lu";
 import "./crear_resena.css";
 import L from "leaflet";
@@ -215,21 +218,27 @@ const estados_Norte = [
   
       if (!validarCampos()) return; // Validar los campos antes de enviar
   
-      const formData = new FormData();
-      formData.append("usuarioId", user.id);
-      formData.append("latitud", parseFloat(ubicacion.split(",")[0]));
-      formData.append("longitud", parseFloat(ubicacion.split(",")[1]));
-      formData.append("nombreLugar", document.getElementById("nombreLugar").value);
-      formData.append("categoriaId", categoriaSeleccionada); // ID de la categoría
-      formData.append("descripcion", document.getElementById("descripcion").value);
+      let fotoUrl = null;
       if (imagenSeleccionada) {
-        formData.append("fotoPrincipal", imagenSeleccionada); // Imagen seleccionada
+        const path = `resenas/${Date.now()}_${imagenSeleccionada.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+        fotoUrl = await uploadImage(imagenSeleccionada, 'spotapp', path, { maxWidth: 500, quality: 0.8 });
       }
-  
+
+      const payload = {
+        usuarioId: user.id,
+        latitud: parseFloat(ubicacion.split(",")[0]),
+        longitud: parseFloat(ubicacion.split(",")[1]),
+        nombreLugar: document.getElementById("nombreLugar").value,
+        categoriaId: categoriaSeleccionada,
+        descripcion: document.getElementById("descripcion").value,
+        fotoPrincipal: fotoUrl,
+      };
+
       try {
-        const response = await fetch("http://localhost:8080/resenas", {
+        const response = await fetch(`${API_URL}/resenas`, {
           method: "POST",
-          body: formData, // Enviar como FormData
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
         });
   
         const data = await response.json();

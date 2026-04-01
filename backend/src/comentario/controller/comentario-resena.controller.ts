@@ -22,6 +22,16 @@ export class ComentarioResenaController {
   return this.comentarioResenaService.findByResenaId(resenaId);
 }
 
+  @Get('place/:placeId')
+  findByPlaceId(@Param('placeId') placeId: number) {
+    return this.comentarioResenaService.findByPlaceId(placeId);
+  }
+
+  @Get('usuario/:usuarioId')
+  findByUsuarioId(@Param('usuarioId') usuarioId: number) {
+    return this.comentarioResenaService.findByUsuarioId(usuarioId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.comentarioResenaService.findOne(+id);

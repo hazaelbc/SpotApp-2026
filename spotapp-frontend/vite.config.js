@@ -15,9 +15,13 @@ export default defineConfig({
     },
   ],
   resolve: {
-    alias: {
-      leaflet: 'leaflet/dist/leaflet.js', // Asegura que Vite resuelva correctamente Leaflet
-    },
+    alias: [
+      {
+        // Only replace the bare "leaflet" import so we don't interfere with other paths
+        find: /^leaflet$/,
+        replacement: 'leaflet/dist/leaflet.js',
+      },
+    ],
   },
   css: {
     preprocessorOptions: {
@@ -32,7 +36,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

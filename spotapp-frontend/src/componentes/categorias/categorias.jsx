@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+// API base URL configurable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import { LuFolder, LuSquareCheck, LuUser } from "react-icons/lu"
 import CategoriasGeneral from "../filtrado-categoria/categoria-general";
 import TarjetasUbicacion from "../tarjetas-ubicacion/tarjetaUbicacion";
@@ -57,7 +59,7 @@ const Categorias = ({ searchTerm }) => {
         console.log("Obteniendo ubicación del usuario con ID:", userId);
   
         // Accede a la tabla de ubicación opcional con el ID del usuario
-        const response = await fetch(`http://localhost:8080/user-ubicacion/${userId}`);
+        const response = await fetch(`${API_URL}/user-ubicacion/${userId}`);
         if (!response.ok) {
           console.error("Error al obtener la ubicación del usuario:", response.status);
           return;
@@ -91,7 +93,7 @@ const Categorias = ({ searchTerm }) => {
   
     const fetchResenas = async () => {
       try {
-        const response = await fetch("http://localhost:8080/resenas");
+        const response = await fetch(`${API_URL}/resenas`);
         const data = await response.json();
         console.log("Reseñas obtenidas:", data);
   

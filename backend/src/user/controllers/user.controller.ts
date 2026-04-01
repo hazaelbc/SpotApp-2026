@@ -42,12 +42,13 @@ export class UserController {
   
     return {
       message: 'Inicio de sesión exitoso',
-      token: 'jwt-token-aqui', // Si usas JWT
+      token: 'jwt-token-aqui',
       user: {
         id: user.id,
         nombre: user.nombre,
         email: user.email,
-        fotoPerfil: user.fotoPerfil, // Incluye la foto de perfil
+        fotoPerfil: user.fotoPerfil,
+        cover: user.cover ?? null,
       },
     };
   }
@@ -82,6 +83,7 @@ export class UserController {
             nombre: existingUser.nombre,
             email: existingUser.email,
             fotoPerfil: existingUser.fotoPerfil,
+            cover: existingUser.cover ?? null,
           },
         };
       }
@@ -114,6 +116,7 @@ export class UserController {
         nombre: user.nombre,
         email: user.email,
         fotoPerfil: user.fotoPerfil,
+        cover: user.cover ?? null,
       },
     };
   }
@@ -134,8 +137,8 @@ export class UserController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: number, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(id, updateUserDto);
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.userService.update(+id, updateUserDto);
   }
 
   @Delete(':id')

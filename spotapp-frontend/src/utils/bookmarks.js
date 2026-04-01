@@ -1,25 +1,4 @@
-// Utilities for managing favorites and saved items using localStorage
-const FAVORITES_KEY = 'spotapp_favorites';
-const SAVED_KEY = 'spotapp_saved';
-
-function read(key) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return [];
-    return JSON.parse(raw);
-  } catch (e) {
-    console.warn('failed reading', key, e);
-    return [];
-  }
-}
-
-function write(key, arr) {
-  try {
-    localStorage.setItem(key, JSON.stringify(arr));
-  } catch (e) {
-    console.warn('failed writing', key, e);
-  }
-}
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function normalizeItem(item){
   if(!item) return null;
@@ -36,50 +15,93 @@ function normalizeItem(item){
   };
 }
 
-export function getFavorites(){
-  return read(FAVORITES_KEY) || [];
+function normalizeRow(row) {
+  if (!row) return null;
+  const base = row.place || row;
+  return normalizeItem(base);
 }
 
-export function getSaved(){
-  return read(SAVED_KEY) || [];
+async function fetchJson(url, options) {
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json', ...(options?.headers || {}) },
+    ...options,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
-export function isFavorited(id){
-  if (id == null) return false;
-  return getFavorites().some(i => i && i.id === id);
-}
-
-export function isSaved(id){
-  if (id == null) return false;
-  return getSaved().some(i => i && i.id === id);
-}
-
-export function toggleFavorite(item){
-  const norm = normalizeItem(item);
-  if (!norm || norm.id == null) return false;
-  const list = getFavorites();
-  const exists = list.some(i => i.id === norm.id);
-  let next;
-  if (exists) {
-    next = list.filter(i => i.id !== norm.id);
-  } else {
-    next = [norm, ...list];
+export async function getFavorites(userId){
+  if (!userId) return [];
+  try {
+    const rows = await fetchJson(`${API_URL}/bookmarks/favorites/${userId}`);
+    return (rows || []).map(normalizeRow).filter(Boolean);
+  } catch (e) {
+    console.warn('failed fetching favorites', e);
+    return [];
   }
-  write(FAVORITES_KEY, next);
-  return !exists;
 }
 
-export function toggleSaved(item){
-  const norm = normalizeItem(item);
-  if (!norm || norm.id == null) return false;
-  const list = getSaved();
-  const exists = list.some(i => i.id === norm.id);
-  let next;
-  if (exists) {
-    next = list.filter(i => i.id !== norm.id);
-  } else {
-    next = [norm, ...list];
+export async function getSaved(userId){
+  if (!userId) return [];
+  try {
+    const rows = await fetchJson(`${API_URL}/bookmarks/saved/${userId}`);
+    return (rows || []).map(normalizeRow).filter(Boolean);
+  } catch (e) {
+    console.warn('failed fetching saved', e);
+    return [];
   }
-  write(SAVED_KEY, next);
-  return !exists;
+}
+
+export async function isFavorited(id, userId){
+  if (id == null || !userId) return false;
+  try {
+    const data = await fetchJson(`${API_URL}/bookmarks/status/${userId}/${id}`);
+    return !!data?.favorited;
+  } catch (e) {
+    console.warn('failed status favorite', e);
+    return false;
+  }
+}
+
+export async function isSaved(id, userId){
+  if (id == null || !userId) return false;
+  try {
+    const data = await fetchJson(`${API_URL}/bookmarks/status/${userId}/${id}`);
+    return !!data?.saved;
+  } catch (e) {
+    console.warn('failed status saved', e);
+    return false;
+  }
+}
+
+export async function toggleFavorite(item, userId){
+  const norm = normalizeItem(item);
+  if (!norm || norm.id == null || !userId) return false;
+  try {
+    const data = await fetchJson(`${API_URL}/bookmarks/favorites/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuarioId: Number(userId), placeId: Number(norm.id) }),
+    });
+    return !!data?.active;
+  } catch (e) {
+    console.warn('failed toggle favorite', e);
+    return false;
+  }
+}
+
+export async function toggleSaved(item, userId){
+  const norm = normalizeItem(item);
+  if (!norm || norm.id == null || !userId) return false;
+  try {
+    const data = await fetchJson(`${API_URL}/bookmarks/saved/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuarioId: Number(userId), placeId: Number(norm.id) }),
+    });
+    return !!data?.active;
+  } catch (e) {
+    console.warn('failed toggle saved', e);
+    return false;
+  }
 }

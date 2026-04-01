@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi';
 
 /*
   GaleriaEfimera
@@ -189,6 +190,17 @@ export default function GaleriaEfimera({ images = [], intervalSeconds = 60 * 60,
     return () => window.removeEventListener('keydown', onKey);
   }, [lightboxOpen, chosen.length]);
 
+  // Notify other UI parts (e.g. side indexes) that a gallery modal is open
+  useEffect(() => {
+    try {
+      const ev = new CustomEvent('gallery-lightbox', { detail: { open: !!lightboxOpen } });
+      window.dispatchEvent(ev);
+    } catch (e) {}
+    return () => {
+      try { window.dispatchEvent(new CustomEvent('gallery-lightbox', { detail: { open: false } })); } catch (e) {}
+    };
+  }, [lightboxOpen]);
+
   return (
     <div className="w-full max-w-full rounded-lg overflow-hidden bg-[var(--bg-primary)]">
       <div className="p-2">
@@ -218,12 +230,36 @@ export default function GaleriaEfimera({ images = [], intervalSeconds = 60 * 60,
         </div>
         {lightboxOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setLightboxOpen(false)}>
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <button type="button" onClick={() => setLightboxOpen(false)} className="absolute right-2 top-2 z-50 p-2 bg-white/90 rounded-full">✕</button>
-              <button type="button" onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-white/80 rounded-full">‹</button>
-              <img src={chosen[lightboxIndex]} alt={`lightbox-${lightboxIndex}`} className="max-w-[90vw] max-h-[90vh] object-contain rounded" />
-              <button type="button" onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 z-40 p-2 bg-white/80 rounded-full">›</button>
-            </div>
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  onClick={() => setLightboxOpen(false)}
+                  aria-label="Cerrar imagen"
+                  className="absolute right-3 top-3 z-50 p-2 sm:p-3 bg-white/90 dark:bg-black/60 text-black dark:text-white rounded-full shadow-lg border border-white/20 dark:border-black/40 hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-white/60"
+                >
+                  <FiX className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                  aria-label="Imagen anterior"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-50 p-3 sm:p-4 bg-white/90 dark:bg-black/60 text-black dark:text-white rounded-full shadow-2xl border border-white/10 dark:border-black/40 hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-white/60"
+                >
+                  <FiChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+
+                <img src={chosen[lightboxIndex]} alt={`lightbox-${lightboxIndex}`} className="max-w-[90vw] max-h-[90vh] object-contain rounded" />
+
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                  aria-label="Siguiente imagen"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-50 p-3 sm:p-4 bg-white/90 dark:bg-black/60 text-black dark:text-white rounded-full shadow-2xl border border-white/10 dark:border-black/40 hover:scale-105 transition-transform focus:outline-none focus:ring-2 focus:ring-white/60"
+                >
+                  <FiChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+              </div>
           </div>
         )}
       </div>

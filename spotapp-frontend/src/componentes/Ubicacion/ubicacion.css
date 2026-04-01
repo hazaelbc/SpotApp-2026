@@ -22,3 +22,24 @@
 }
 
 /* End of minimal Leaflet styles */
+
+/* Ensure map controls don't overlap the app header: give them a top offset
+	and lower z-index so the header (z-50) stays above map UI. Adjust
+	--header-offset if your header height changes. */
+.leaflet-map-offset .leaflet-top { top: var(--header-offset, 84px) !important; }
+.leaflet-map-offset .leaflet-control { z-index: 40 !important; }
+
+/* Slightly lift zoom control background for contrast */
+.leaflet-map-offset .leaflet-control-zoom { background: rgba(255,255,255,0.9); border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.35); }
+
+/* Ensure the map itself stays behind the app header (header has z-50). */
+.leaflet-map-offset {
+	position: relative !important;
+	z-index: 0 !important;
+}
+.leaflet-map-offset .leaflet-container,
+.leaflet-map-offset .leaflet-pane,
+.leaflet-map-offset .leaflet-tile,
+.leaflet-map-offset .leaflet-overlay-pane {
+	z-index: 0 !important;
+}

@@ -32,5 +32,9 @@ export class User {
   @IsOptional()
   @IsString({ message: 'La foto de perfil debe ser una URL válida' })
   fotoPerfil?: string;
+
+  @IsOptional()
+  @IsString({ message: 'La foto de portada debe ser una URL válida' })
+  cover?: string | null;
 }
 

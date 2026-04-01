@@ -6,7 +6,9 @@ import { testS3Connection } from '../src/AWS/services/awsService';
 dotenv.config();
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: true });
+  app.use(require('express').json({ limit: '10mb' }));
+  app.use(require('express').urlencoded({ limit: '10mb', extended: true }));
 
   const allowedOrigins = [
     'http://localhost:5173',

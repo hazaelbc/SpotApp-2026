@@ -1,7 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
-   log = ["query"]
+  log           = ["query"]
 }
 
 datasource db {
@@ -10,103 +10,387 @@ datasource db {
 }
 
 model Usuario {
-  id              Int                 @id @default(autoincrement())
-  nombre          String
-  email           String              @unique
-  contrasena      String?             // NULL para usuarios de Google
-  googleId        String?             @unique // ID de Google OAuth
-  provider        String              @default("local") // "local" | "google"
-  emailVerificado Boolean             @default(false) // Para verificación de email
-  ubicacion       UbicacionOpcional?  @relation() // Relación uno a uno, sin especificar `fields` ni `references`
-  fotoPerfil      String              @default("https://via.placeholder.com/150")
-  createdAt       DateTime            @default(now()) // Fecha de creación
-  updatedAt       DateTime            @updatedAt // Fecha de actualización
-  calificaciones  Calificacion[]
-  comentarios     ComentariosResena[] 
+  id                      Int                       @id @default(autoincrement())
+  nombre                  String
+  email                   String                    @unique
+  contrasena              String?
+  fotoPerfil              String                    @default("https://via.placeholder.com/150")
+  googleId                String?                   @unique
+  provider                String                    @default("local")
+  emailVerificado         Boolean                   @default(false)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  bio                     String?
+  cover                   String?
+  isBanned                Boolean                   @default(false)
+  lastLogin               DateTime?
+  lat                     Float?
+  lng                     Float?
+  locale                  String?
+  role                    Role                      @default(USER)
+  telefono                String?
+  ubicacionText           String?                   @map("ubicacion")
+  ubicacionLabel          String?
+  calificaciones          Calificacion[]
+  collections             Collection[]
+  comentarios             ComentariosResena[]
+  conversations           ConversationParticipant[]
+  favorites               Favorite[]
+  historialBusquedas      HistorialBusqueda[]
+  historialCalificaciones HistorialCalificaciones[]
+  messages                Message[]
+  notifications           Notification[]
+  fotos                   Photo[]
+  placesCreated           Place[]
+  refreshTokens           RefreshToken[]
+  reports                 Report[]
+  resenas                 Resena[]
+  saved                   Saved[]
+  solicitudesEnviadas     SolicitudAmistad[]        @relation("SolicitudesEnviadas")
+  solicitudesRecibidas    SolicitudAmistad[]        @relation("SolicitudesRecibidas")
+  ubicacion               UbicacionOpcional?
+  verificationTokens      VerificationToken[]
+
   @@map("usuarios")
 }
 
+model SolicitudAmistad {
+  id        Int             @id @default(autoincrement())
+  fromId    Int
+  toId      Int
+  estado    EstadoSolicitud @default(PENDIENTE)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  from      Usuario         @relation("SolicitudesEnviadas", fields: [fromId], references: [id])
+  to        Usuario         @relation("SolicitudesRecibidas", fields: [toId], references: [id])
+
+  @@unique([fromId, toId])
+  @@map("solicitudes_amistad")
+}
+
 model UbicacionOpcional {
-  id        Int     @id // El id será el mismo que el de Usuario
-  latitud   Float   @default(0.0)
-  longitud  Float   @default(0.0)
-  usuario   Usuario @relation(fields: [id], references: [id]) // Relación con Usuario
+  id       Int     @id
+  latitud  Float   @default(0.0)
+  longitud Float   @default(0.0)
+  usuario  Usuario @relation(fields: [id], references: [id])
 
   @@map("ubicaciones_opcionales")
 }
 
 model Resena {
-  id           Int       @id @default(autoincrement())
-  usuarioId    Int
-  latitud      Float     @default(0.0) // Valor predeterminado
-  longitud     Float     @default(0.0) // Valor predeterminado
-  nombreLugar  String
-  categoriaId  Int
-  fecha        DateTime  @default(now())
-  vistas       Int       @default(0)
-  descripcion        String? 
-  fotoPrincipal String    @default("https://via.placeholder.com/150") // URL predeterminada para la foto principal
-  fotos        FotoResena[]  // Relación con las fotos de la reseña
-  sumaCalificaciones Int @default(0) // Suma de calificaciones
-  totalCalificaciones Int @default(0) // Total de calificaciones
-  calificacion  Int       @default(0) 
-  calificaciones      Calificacion[]
-  comentarios         ComentariosResena[]
+  id                      Int                       @id @default(autoincrement())
+  usuarioId               Int
+  latitud                 Float                     @default(0.0)
+  longitud                Float                     @default(0.0)
+  nombreLugar             String
+  categoriaId             Int
+  fecha                   DateTime                  @default(now())
+  vistas                  Int                       @default(0)
+  fotoPrincipal           String                    @default("https://via.placeholder.com/150")
+  calificacion            Int                       @default(0)
+  sumaCalificaciones      Int                       @default(0)
+  totalCalificaciones     Int                       @default(0)
+  descripcion             String?
+  dislikes                Int                       @default(0)
+  likes                   Int                       @default(0)
+  placeId                 Int?
+  slug                    String?                   @unique
+  status                  ResenaStatus              @default(APPROVED)
+  lat                     Float?
+  lng                     Float?
+  calificaciones          Calificacion[]
+  comentarios             ComentariosResena[]
+  fotos                   FotoResena[]
+  historialCalificaciones HistorialCalificaciones[]
+  Photo                   Photo[]
+  place                   Place?                    @relation(fields: [placeId], references: [id])
+  usuario                 Usuario                   @relation(fields: [usuarioId], references: [id])
+
   @@map("resenas")
 }
 
-
 model Calificacion {
-  id           Int       @id @default(autoincrement())
-  resenaId     Int       // Referencia a la reseña
-  resena       Resena    @relation(fields: [resenaId], references: [id]) // Relación con la tabla Resena
-  usuarioId    Int       // Referencia al usuario
-  usuario      Usuario   @relation(fields: [usuarioId], references: [id]) // Relación con la tabla Usuario
-  calificacion Int       // Calificación dada por el usuario (1-5)
-  fecha        DateTime  @default(now()) // Fecha de la calificación
+  id           Int     @id @default(autoincrement())
+  resenaId     Int
+  usuarioId    Int
+  calificacion Int
+  direccion    String?
+  resena       Resena  @relation(fields: [resenaId], references: [id])
+  usuario      Usuario @relation(fields: [usuarioId], references: [id])
 
+  @@unique([resenaId, usuarioId])
   @@map("calificaciones")
 }
 
-
 model FotoResena {
-  id        Int    @id @default(autoincrement())
-  resenaId  Int    // Campo que almacena la referencia a la reseña
-  resena    Resena @relation(fields: [resenaId], references: [id]) // Relación con Resena
-  url       String @default("https://via.placeholder.com/150") // URL predeterminada para las fotos
-  orden     Int    // Orden de la foto dentro de la reseña (1 a 7)
+  id       Int    @id @default(autoincrement())
+  resenaId Int
+  url      String @default("https://via.placeholder.com/150")
+  orden    Int
+  resena   Resena @relation(fields: [resenaId], references: [id])
 
+  @@unique([resenaId, orden])
   @@map("fotos_resena")
 }
 
 model ComentariosResena {
-  id         Int       @id @default(autoincrement())
-  resenaId   Int       // Referencia a la reseña
-  usuarioId  Int       // Referencia al usuario
+  id         Int                 @id @default(autoincrement())
+  resenaId   Int
+  usuarioId  Int
   comentario String
-  fecha      DateTime  @default(now())
-
-  usuario    Usuario   @relation(fields: [usuarioId], references: [id]) // Relación con Usuario
-  resena     Resena    @relation(fields: [resenaId], references: [id]) // Relación con Resena
+  fecha      DateTime            @default(now())
+  deletedAt  DateTime?
+  parentId   Int?
+  rating     Float?
+  parent     ComentariosResena?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies    ComentariosResena[] @relation("CommentReplies")
+  resena     Resena              @relation(fields: [resenaId], references: [id])
+  usuario    Usuario             @relation(fields: [usuarioId], references: [id])
 
   @@map("comentarios_resena")
 }
 
 model HistorialCalificaciones {
-  id           Int       @id @default(autoincrement())
-  resenaId     Int       // Referencia a la reseña, pero sin relación explícita
-  usuarioId    Int       // Referencia al usuario, pero sin relación explícita
+  id           Int      @id @default(autoincrement())
+  resenaId     Int
+  usuarioId    Int
   calificacion Int
-  fecha        DateTime  @default(now())
+  fecha        DateTime @default(now())
+  resena       Resena   @relation(fields: [resenaId], references: [id])
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id])
 
   @@map("historial_calificaciones")
 }
 
-
 model HistorialBusqueda {
-  id              Int       @id @default(autoincrement())
-  usuarioId       Int       // Referencia al usuario, pero sin relación explícita
+  id              Int      @id @default(autoincrement())
+  usuarioId       Int
   terminoBusqueda String
+  fecha           DateTime @default(now())
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id])
 
   @@map("historial_busqueda")
+}
+
+model Place {
+  id           Int              @id @default(autoincrement())
+  externalId   String?          @unique
+  nombre       String
+  descripcion  String?
+  categoria    String?
+  coverPhoto   String?
+  imagen       String?
+  latitud      Float            @default(0.0)
+  longitud     Float            @default(0.0)
+  creatorId    Int?
+  calificacion Float            @default(0)
+  vistas       Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  lat          Float?
+  lng          Float?
+  direccion    String?
+  collections  CollectionItem[]
+  favoritedBy  Favorite[]
+  Photo        Photo[]
+  fotos        PlacePhoto[]
+  viewEvents   PlaceView[]
+  creator      Usuario?         @relation(fields: [creatorId], references: [id])
+  resenas      Resena[]
+  savedBy      Saved[]
+
+  @@map("places")
+}
+
+model PlaceView {
+  id        Int      @id @default(autoincrement())
+  placeId   Int
+  createdAt DateTime @default(now())
+  place     Place    @relation(fields: [placeId], references: [id])
+
+  @@index([placeId, createdAt])
+  @@map("place_views")
+}
+
+model PlacePhoto {
+  id      Int    @id @default(autoincrement())
+  placeId Int
+  url     String @default("https://via.placeholder.com/150")
+  orden   Int
+  place   Place  @relation(fields: [placeId], references: [id])
+
+  @@unique([placeId, orden])
+  @@map("place_photos")
+}
+
+model Photo {
+  id        Int      @id @default(autoincrement())
+  url       String
+  alt       String?
+  orden     Int?     @default(0)
+  placeId   Int?
+  resenaId  Int?
+  usuarioId Int?
+  createdAt DateTime @default(now())
+  place     Place?   @relation(fields: [placeId], references: [id])
+  resena    Resena?  @relation(fields: [resenaId], references: [id])
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@map("photos")
+}
+
+model Saved {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  placeId   Int
+  createdAt DateTime @default(now())
+  place     Place    @relation(fields: [placeId], references: [id])
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@unique([usuarioId, placeId])
+  @@map("saved")
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  placeId   Int
+  createdAt DateTime @default(now())
+  place     Place    @relation(fields: [placeId], references: [id])
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@unique([usuarioId, placeId])
+  @@map("favorites")
+}
+
+model Collection {
+  id          Int              @id @default(autoincrement())
+  usuarioId   Int
+  nombre      String
+  descripcion String?
+  isPublic    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  items       CollectionItem[]
+  usuario     Usuario          @relation(fields: [usuarioId], references: [id])
+
+  @@map("collections")
+}
+
+model CollectionItem {
+  id           Int        @id @default(autoincrement())
+  collectionId Int
+  placeId      Int
+  orden        Int
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  place        Place      @relation(fields: [placeId], references: [id])
+
+  @@unique([collectionId, placeId])
+  @@map("collection_items")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  tipo      String
+  data      Json?
+  leido     Boolean  @default(false)
+  createdAt DateTime @default(now())
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@map("notifications")
+}
+
+model Conversation {
+  id           Int                       @id @default(autoincrement())
+  title        String?
+  createdAt    DateTime                  @default(now())
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  usuarioId      Int
+  lastReadAt     DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@unique([conversationId, usuarioId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  usuarioId      Int
+  content        String?
+  attachments    Json?
+  createdAt      DateTime     @default(now())
+  isRead         Boolean      @default(false)
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  usuario        Usuario      @relation(fields: [usuarioId], references: [id])
+
+  @@map("messages")
+}
+
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  usuarioId Int
+  tokenHash String
+  ip        String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id])
+
+  @@map("refresh_tokens")
+}
+
+model VerificationToken {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  tokenHash String
+  type      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@map("verification_tokens")
+}
+
+model Report {
+  id         Int      @id @default(autoincrement())
+  reporterId Int
+  targetType String
+  targetId   Int
+  reason     String
+  createdAt  DateTime @default(now())
+  handled    Boolean  @default(false)
+  reporter   Usuario  @relation(fields: [reporterId], references: [id])
+
+  @@map("reports")
+}
+
+enum EstadoSolicitud {
+  PENDIENTE
+  ACEPTADA
+  RECHAZADA
+  CANCELADA
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum ResenaStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REMOVED
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from 'react-dom';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { FaUtensils, FaCoffee, FaShoppingCart, FaBeer, FaStore } from 'react-icons/fa';
 import { useUser } from "../../userProvider";
@@ -7,6 +8,9 @@ import L from "leaflet";
 import "../../../node_modules/leaflet/dist/leaflet.css";
 import "./ubicacion.css";
 import { useTheme } from "../../contexts/themeContext";
+
+// API base URL: use VITE_API_URL if provided, otherwise fallback to backend on port 3000
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const estadosNorte = [
     {
@@ -59,9 +63,9 @@ const estadosNorte = [
     },
   ];
 
-const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose } = {}) => {
+const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSaveLocation: controlledOnSave, ignoreUserInitial = false } = {}) => {
   const { user, setUser } = useUser(); // Accede al usuario desde el contexto
-  const [ubicacion, setUbicacion] = useState(user?.ubicacion || "00"); // Estado local para manejar la ubicación
+  const [ubicacion, setUbicacion] = useState(ignoreUserInitial ? "00" : (user?.ubicacion || "00")); // Estado local para manejar la ubicación
   const [internalModalVisible, setInternalModalVisible] = useState(false); // Estado interno
   // Si el padre pasa isOpen, usamos ese valor (modo controlado); si no, usamos el estado interno
   const modalVisible = controlledIsOpen !== undefined ? controlledIsOpen : internalModalVisible;
@@ -123,20 +127,23 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose } = {}
     }
 
     try {
-      const response = await fetch(`http://localhost:8080/user-ubicacion/${user.id}`, {
+      // If parent provided an onSaveLocation callback, call it and do NOT update user
+      const built = await reverseGeocodeAndFill(latitud, longitud).catch(() => '');
+      const labelToSave = built || ubicacionLabel || '';
+      if (typeof controlledOnSave === 'function') {
+        try { controlledOnSave({ latitud, longitud, ubicacionLabel: labelToSave }); } catch (e) { console.error('onSaveLocation callback error', e); }
+        handleCerrarModal();
+        return;
+      }
+
+      // Default behaviour: save location to user via API
+      const response = await fetch(`${API_URL}/user-ubicacion/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ latitud, longitud, ubicacionLabel: ubicacionLabel || '' }),
+        body: JSON.stringify({ latitud, longitud, ubicacionLabel: labelToSave }),
       });
       if (response.ok) {
-        // ensure label is up-to-date before updating local user
-        try {
-          const built = await reverseGeocodeAndFill(latitud, longitud);
-          const labelToSave = built || ubicacionLabel || '';
-          setUser({ ...user, ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`, ubicacionLabel: labelToSave });
-        } catch(e) {
-          setUser({ ...user, ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`, ubicacionLabel });
-        }
+        setUser({ ...user, ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`, ubicacionLabel: labelToSave });
       } else {
         console.error('Error al actualizar la ubicación:', response.status);
       }
@@ -183,7 +190,13 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose } = {}
       }
 
       // Inicializa el mapa
-      const mapInstance = L.map("map-ubicacion", { zoomControl: false }).setView([lat, lng], 13);
+      const mapInstance = L.map("map-ubicacion", {
+        zoomControl: false,
+        attributionControl: false,
+        zoomSnap: 0.25,
+        zoomDelta: 0.5,
+        wheelPxPerZoomLevel: 120,
+      }).setView([lat, lng], 13);
 
       // Create both dark and light tile layers, but add only the one matching app theme
       // Use a less-ink, more gray dark tiles (Stadia Alidade Smooth Dark)
@@ -299,7 +312,7 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose } = {}
           const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
           // call backend endpoint which proxies Overpass for security and CORS
           // request default categories: restaurant,cafe,supermarket
-          const res = await fetch(`http://localhost:8080/places?bbox=${encodeURIComponent(bbox)}&categories=restaurant,cafe,supermarket`);
+          const res = await fetch(`${API_URL}/places?bbox=${encodeURIComponent(bbox)}&categories=restaurant,cafe,supermarket`);
           if (!res.ok) {
             console.log('places fetch status', res.status);
             setNoPOI(true);
@@ -393,9 +406,13 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose } = {}
         }
       }
 
-      // initial load and reload on moveend
+      // initial load and reload on moveend (debounced)
+      let moveTimer = null;
       fetchPOIs();
-      mapInstance.on('moveend', () => { fetchPOIs(); });
+      mapInstance.on('moveend', () => {
+        if (moveTimer) clearTimeout(moveTimer);
+        moveTimer = setTimeout(() => { fetchPOIs(); }, 600);
+      });
 
       // Asegúrate de que el mapa se renderice correctamente
       setTimeout(() => {
@@ -472,9 +489,13 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose } = {}
   };
 
   useEffect(() => {
+    // If parent requested ignoring user initial data or provided a controlled save callback,
+    // skip fetching/syncing the saved user location to avoid mutating user state.
+    if (ignoreUserInitial || typeof controlledOnSave === 'function') return;
+
     const fetchUbicacion = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/user-ubicacion/${user.id}`);
+        const response = await fetch(`${API_URL}/user-ubicacion/${user.id}`);
         if (response.ok) {
           const data = await response.json();
           if (data.latitud && data.longitud) {
@@ -500,9 +521,9 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose } = {}
         console.error("Error de red al recuperar la ubicación:", error);
       }
     };
-  
+
     fetchUbicacion();
-  }, [user.id]);
+  }, [user.id, ignoreUserInitial, controlledOnSave]);
 
   // Reverse geocode using Nominatim to fill state/city from coords
   async function reverseGeocodeAndFill(lat, lng) {
@@ -602,50 +623,73 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose } = {}
         </div>
       )}
   
-      {modalVisible && (
-        <div className={`fixed inset-0 ${isDark ? 'bg-black/60' : 'bg-black/35'} backdrop-blur-sm z-50 flex justify-center items-center p-4`}>
-          <div className={`flex flex-col items-center justify-center p-5 rounded-lg shadow-lg w-[min(800px,90vw)] max-h-[90vh] overflow-auto bg-[var(--bg-secondary)] text-[var(--text-primary)]`}>
-            <h2 className="text-xl ml-2 font-semibold text-[var(--text-primary)]">Selecciona tu estado, ciudad y ubicación</h2>
-            <div className="flex flex-col gap-1 w-full m-0 py-0">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-center justify-center gap-1 sm:gap-2 w-full mx-auto py-0 px-2 max-w-[calc(100%-32px)]">
-                <div className="w-full sm:w-auto flex-shrink-0">
-                  <button
-                    onClick={handleUseMyLocation}
-                    className="w-full sm:w-auto px-4 py-1.5 text-sm font-medium h-8 rounded-md bg-[var(--accent-green)] hover:bg-[var(--accent-green-hover)] text-white transition disabled:opacity-70 whitespace-nowrap sm:min-w-[120px]"
-                    disabled={loadingPosition}
-                  >
-                    {loadingPosition ? 'Obteniendo...' : 'Usar mi ubicación'}
+      {modalVisible && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="flex flex-col w-full sm:w-[min(780px,92vw)] max-h-[95dvh] sm:max-h-[88vh] bg-[var(--bg-primary)] sm:rounded-2xl overflow-hidden shadow-2xl">
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)] flex-shrink-0">
+              <div>
+                <p className="text-base font-semibold text-[var(--text-primary)]">Tu ubicación</p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-0.5">Mueve el marcador para ajustar. No compartas tu posición exacta.</p>
+              </div>
+              <button
+                onClick={handleUseMyLocation}
+                disabled={loadingPosition}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-medium hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors disabled:opacity-50 flex-shrink-0"
+              >
+                {loadingPosition ? (
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path strokeLinecap="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
+                  </svg>
+                )}
+                {loadingPosition ? 'Obteniendo...' : 'Usar mi ubicación'}
+              </button>
+            </div>
+
+            {/* Mapa */}
+            <div className="relative flex-1 min-h-0">
+              <div id="map-ubicacion" className="h-full w-full min-h-[320px] sm:min-h-[400px]" style={{ backgroundColor: isDark ? '#1e1e1e' : '#f1f5f9' }} />
+              {noPOI && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-[var(--bg-secondary)]/95 border border-[var(--border-color)] px-3 py-2 rounded-xl flex items-center gap-2.5 shadow-md">
+                  <p className="text-xs text-[var(--text-secondary)]">Sin lugares encontrados en 2 km</p>
+                  <button onClick={() => setNoPOI(false)} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors" aria-label="Cerrar">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
                   </button>
                 </div>
-                <div className="w-full sm:w-auto mt-1 sm:mt-0 text-sm text-[var(--text-secondary)] font-light leading-tight truncate sm:whitespace-normal sm:overflow-visible sm:text-left text-center">No compartas tu ubicación exacta; mueve el marcador para indicar una posición.</div>
-              </div>
-            </div>
-            {/* (Seleccionar ciudad eliminado - ahora el usuario puede arrastrar el marcador para indicar una ubicación aproximada) */}
-            
-  
-            {/* Mapa (envoltorio relativo para overlays dentro del mapa) */}
-            <div className="relative w-full mt-3">
-              <div id="map-ubicacion" className="h-96 w-full rounded-lg shadow-lg overflow-hidden bg-[var(--bg-tertiary)] border-[var(--border-color)]"></div>
-              {noPOI && (
-                <div className="absolute top-3 left-3 z-50 max-w-xs bg-[var(--bg-secondary)]/95 border border-[var(--border-color)] p-2 rounded-md flex items-start gap-2">
-                  <div className="flex-1 text-sm text-[var(--text-primary)]">No se encontraron lugares en un radio de 2 km.</div>
-                  <button onClick={() => setNoPOI(false)} className="text-[var(--text-tertiary)] hover:text-white ml-2" aria-label="Cerrar aviso">✕</button>
+              )}
+              {ubicacionLabel && (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 bg-[var(--bg-secondary)]/95 border border-[var(--border-color)] px-3 py-1.5 rounded-xl shadow-md pointer-events-none">
+                  <p className="text-xs text-[var(--text-secondary)] whitespace-nowrap">{ubicacionLabel}</p>
                 </div>
               )}
             </div>
 
-            {/* Botones */}
-            <div className="flex justify-end gap-3 mt-3 w-full">
-              <button onClick={handleCerrarModal} className="px-4 py-2 rounded-md bg-transparent text-[var(--text-secondary)] border-[var(--border-color)] hover:bg-[var(--bg-tertiary)]">
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-[var(--border-color)] flex-shrink-0">
+              <button
+                onClick={handleCerrarModal}
+                className="px-4 py-2 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+              >
                 Cancelar
               </button>
-              <button onClick={handleGuardarUbicacion} className="px-4 py-2 rounded-md bg-[var(--accent-green)] hover:bg-[var(--accent-green-hover)] text-white font-semibold">
-                Guardar Ubicación
+              <button
+                onClick={handleGuardarUbicacion}
+                className="px-5 py-2 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold hover:opacity-80 transition-opacity"
+              >
+                Guardar ubicación
               </button>
             </div>
+
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 };

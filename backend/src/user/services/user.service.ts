@@ -143,16 +143,17 @@ export class UserService {
   async findBasic() {
     const usuarios = await this.prismaService.usuario.findMany({
       select: {
+        id: true,
         nombre: true,
         email: true,
+        fotoPerfil: true,
+        cover: true,
+        lat: true,
+        lng: true,
       },
     });
 
-    if (!usuarios || usuarios.length === 0) {
-      throw new NotFoundException('No hay usuarios disponibles');
-    }
-
-    return usuarios;
+    return usuarios ?? [];
   }
 
   // Validar usuario con login tradicional (email + password)
@@ -190,6 +191,7 @@ export class UserService {
       email: user.email,
       contrasena: user.contrasena,
       fotoPerfil: user.fotoPerfil,
+      cover: user.cover ?? null,
     };
   }
 
@@ -212,6 +214,7 @@ export class UserService {
         email: user.email,
         contrasena: user.contrasena,
         fotoPerfil: user.fotoPerfil,
+        cover: user.cover ?? null,
       };
     }
 
@@ -268,6 +271,7 @@ export class UserService {
       email: user.email,
       contrasena: user.contrasena,
       fotoPerfil: user.fotoPerfil,
+      cover: user.cover ?? null,
     };
   }
 }

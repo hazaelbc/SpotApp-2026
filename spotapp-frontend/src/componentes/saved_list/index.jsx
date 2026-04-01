@@ -1,16 +1,33 @@
 import React, { useEffect, useState } from 'react';
 import TarjetaUbicacionIndividual from '../tarjetas_ubicacion';
 import { getFavorites, getSaved } from '../../utils/bookmarks';
+import { useUser } from '../../userProvider';
 
 export default function SavedList({ mode = 'favorites', onSelect }){
+  const { user } = useUser() || {};
   const [items, setItems] = useState([]);
 
   useEffect(() => {
-    try{
-      const list = mode === 'saved' ? getSaved() : getFavorites();
-      setItems(list || []);
-    }catch(e){ setItems([]); }
-  }, [mode]);
+    let cancelled = false;
+
+    const load = async () => {
+      if (!user?.id) {
+        if (!cancelled) setItems([]);
+        return;
+      }
+      try{
+        const list = mode === 'saved'
+          ? await getSaved(user.id)
+          : await getFavorites(user.id);
+        if (!cancelled) setItems(list || []);
+      }catch(e){
+        if (!cancelled) setItems([]);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [mode, user?.id]);
 
   return (
     <div className="p-3 lg:p-6">

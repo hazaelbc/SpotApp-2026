@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
+// API base URL configurable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import "./modal-info-ubicacion.css";
 import { useUser } from "../../userProvider.jsx";
 import L from "leaflet";
@@ -186,7 +188,7 @@ const ModalInfoUbicacion = ({ visible, onClose, resena }) => {
   useEffect(() => {
     const fetchComentarios = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/comentarios-resena/resena/${resena.id}`);
+        const response = await fetch(`${API_URL}/comentarios-resena/resena/${resena.id}`);
         if (response.ok) {
           const data = await response.json();
           setComentarios(data);
@@ -207,7 +209,7 @@ const ModalInfoUbicacion = ({ visible, onClose, resena }) => {
     if (visible && activeScreen === "map") {
       const fetchUserLocation = async () => {
         try {
-          const response = await fetch(`http://localhost:8080/user-ubicacion/${user.id}`);
+          const response = await fetch(`${API_URL}/user-ubicacion/${user.id}`);
           if (response.ok) {
             const data = await response.json();
             setUserLocation({ lat: data.latitud, lng: data.longitud });

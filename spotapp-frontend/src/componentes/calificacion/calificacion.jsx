@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Rating from '@mui/material/Rating';
 import Stack from '@mui/material/Stack';
 
-const Calificacion = ({ valorInicial = 0, onCalificar }) => {
+const Calificacion = ({ valorInicial = 0, onCalificar, readOnly = false }) => {
   const [valor, setValor] = useState(Number(valorInicial) || 0);
   const [hover, setHover] = useState(-1);
 
+  useEffect(() => {
+    const next = Number(valorInicial);
+    setValor(Number.isFinite(next) ? next : 0);
+  }, [valorInicial]);
+
   const handleChange = (event, newValue) => {
+    if (readOnly) return;
     setValor(newValue);
     if (onCalificar) onCalificar(newValue);
   };
@@ -18,7 +24,8 @@ const Calificacion = ({ valorInicial = 0, onCalificar }) => {
         precision={0.5}
         value={valor}
         onChange={handleChange}
-        max={4}
+        max={5}
+        readOnly={readOnly}
         onChangeActive={(e, newHover) => setHover(newHover)}
         sx={{
           '& .MuiRating-icon': {

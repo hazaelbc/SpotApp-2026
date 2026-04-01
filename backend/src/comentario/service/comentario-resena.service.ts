@@ -8,7 +8,7 @@ export class ComentarioResenaService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createComentarioResenaDto: CreateComentarioResenaDto) {
-    const { usuarioId, resenaId, comentario } = createComentarioResenaDto;
+    const { usuarioId, resenaId, comentario, rating } = createComentarioResenaDto;
 
     // Verifica que el usuario exista
     const usuario = await this.prisma.usuario.findUnique({
@@ -21,11 +21,12 @@ export class ComentarioResenaService {
     }
 
     // Crea el comentario
-    const nuevoComentario = await this.prisma.comentariosResena.create({
+    const nuevoComentario = await (this.prisma.comentariosResena as any).create({
       data: {
         resenaId,
         usuarioId,
         comentario,
+        rating,
       },
     });
 
@@ -66,7 +67,46 @@ export class ComentarioResenaService {
       },
     });
   }
+
+  // Buscar comentarios por placeId (todos los comentarios cuyas reseñas pertenecen a un place)
+  async findByPlaceId(placeId: number) {
+    return this.prisma.comentariosResena.findMany({
+      where: {
+        resena: {
+          is: {
+            placeId: Number(placeId),
+          },
+        },
+      },
+      include: {
+        usuario: {
+          select: {
+            nombre: true,
+            fotoPerfil: true,
+          },
+        },
+      },
+    });
+  }
   
+  async findByUsuarioId(usuarioId: number) {
+    return this.prisma.comentariosResena.findMany({
+      where: { usuarioId: Number(usuarioId) },
+      include: {
+        usuario: { select: { nombre: true, fotoPerfil: true } },
+        resena: {
+          select: {
+            id: true,
+            nombreLugar: true,
+            placeId: true,
+            place: { select: { id: true, nombre: true, categoria: true, imagen: true, descripcion: true } },
+          },
+        },
+      },
+      orderBy: { fecha: 'desc' },
+    });
+  }
+
   async findOne(id: number) {
     const comentario = await this.prisma.comentariosResena.findUnique({
       where: { id },

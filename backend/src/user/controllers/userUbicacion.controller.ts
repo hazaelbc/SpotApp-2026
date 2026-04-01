@@ -34,7 +34,7 @@ export class UserUbicacionController {
   @Put(':id')
   async update(
     @Param('id') id: string, // Cambia el tipo a string para recibirlo como texto
-    @Body() updateUserUbicacionDto: { latitud: number; longitud: number },
+    @Body() updateUserUbicacionDto: { latitud: number; longitud: number; ubicacionLabel?: string },
   ) {
     const numericId = parseInt(id, 10); // Convierte el ID a un número
     if (isNaN(numericId)) {

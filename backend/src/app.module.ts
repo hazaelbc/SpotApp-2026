@@ -17,14 +17,22 @@ import { ComentarioResenaModule } from './comentario/module/comentario-resena.mo
 import { HistorialCalificacionesModule } from './historialCalificaciones/module/historial-calificaciones.module';
 import { HistorialBusquedaModule } from './historialBusqueda/module/historial-busqueda.module';
 import { PlacesModule } from './places/places.module';
+import { BookmarksModule } from './bookmarks/bookmarks.module';
+import { AmistadModule } from './amistad/amistad.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
-  imports: [UserModule, 
-    ResenaModule, 
-    ComentarioResenaModule, 
+  imports: [UserModule,
+    ResenaModule,
+    ComentarioResenaModule,
     HistorialCalificacionesModule,
     HistorialBusquedaModule,
-    PlacesModule],
+    PlacesModule,
+    BookmarksModule,
+    AmistadModule,
+    NotificationsModule,
+    ChatModule],
   controllers: [AppController],
   providers: [AppService],
 })
