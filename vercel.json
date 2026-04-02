@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://spotapp-2026.onrender.com/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
