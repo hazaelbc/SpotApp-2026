@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+// API base URL configurable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import { Navigate } from "react-router-dom";
 
 const RedirectIfAuthenticated = ({ children }) => {
@@ -15,7 +17,7 @@ const RedirectIfAuthenticated = ({ children }) => {
 
       try {
         // Verifica que el token sea válido haciendo una petición al backend
-        const response = await fetch("http://localhost:8080/users/validate", {
+        const response = await fetch(`${API_URL}/users/validate`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${authToken}`,

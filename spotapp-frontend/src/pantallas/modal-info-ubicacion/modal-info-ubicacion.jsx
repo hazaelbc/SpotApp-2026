@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useRef } from "react";
+// API base URL configurable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import "./modal-info-ubicacion.css";
 import { useUser } from "../../userProvider.jsx";
 import L from "leaflet";
 import "../../../node_modules/leaflet/dist/leaflet.css";
 import Breadcrumblecookie from "../../componentes/breadcrumbs/breadcrumb.jsx";
 import Calificacion from "../../componentes/calificacion/calificacion.jsx";
-import Comentario from "../../componentes/comentarios/comentarios.jsx";
+import Comentario from "../../componentes/comentarios";
 import BarraComentario from "../../componentes/barra-comentarios/barra-comentarios.jsx";
 // const ModalInfoUbicacion = ({ visible, onClose, resena }) => {
 //   const { user } = useUser();
@@ -186,7 +188,7 @@ const ModalInfoUbicacion = ({ visible, onClose, resena }) => {
   useEffect(() => {
     const fetchComentarios = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/comentarios-resena/resena/${resena.id}`);
+        const response = await fetch(`${API_URL}/comentarios-resena/resena/${resena.id}`);
         if (response.ok) {
           const data = await response.json();
           setComentarios(data);
@@ -207,7 +209,7 @@ const ModalInfoUbicacion = ({ visible, onClose, resena }) => {
     if (visible && activeScreen === "map") {
       const fetchUserLocation = async () => {
         try {
-          const response = await fetch(`http://localhost:8080/user-ubicacion/${user.id}`);
+          const response = await fetch(`${API_URL}/user-ubicacion/${user.id}`);
           if (response.ok) {
             const data = await response.json();
             setUserLocation({ lat: data.latitud, lng: data.longitud });
@@ -286,7 +288,7 @@ const ModalInfoUbicacion = ({ visible, onClose, resena }) => {
         <div className="content-container">
           <div className={`info ${activeScreen === "info" ? "visible" : "hidden"}`}>
             <img
-              src={resena.fotoPrincipal || "https://via.placeholder.com/150"}
+              src={resena.fotoPrincipal || '/fp_default.webp'}
               alt="Imagen del lugar"
               className="info-image"
             />

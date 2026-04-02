@@ -1,0 +1,10 @@
+[
+  {
+    "repo": "vercel-labs/agent-skills",
+    "skill": "web-design-guidelines"
+  },
+  {
+    "repo": "google-labs-code/stitch-skills",
+    "skill": "enhance-prompt"
+  }
+]

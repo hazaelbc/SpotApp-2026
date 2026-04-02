@@ -8,7 +8,7 @@ export class ComentarioResenaService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createComentarioResenaDto: CreateComentarioResenaDto) {
-    const { usuarioId, resenaId, comentario } = createComentarioResenaDto;
+    const { usuarioId, resenaId, comentario, rating } = createComentarioResenaDto;
 
     // Verifica que el usuario exista
     const usuario = await this.prisma.usuario.findUnique({
@@ -21,11 +21,12 @@ export class ComentarioResenaService {
     }
 
     // Crea el comentario
-    const nuevoComentario = await this.prisma.comentariosResena.create({
+    const nuevoComentario = await (this.prisma.comentariosResena as any).create({
       data: {
         resenaId,
         usuarioId,
         comentario,
+        rating,
       },
     });
 
@@ -55,7 +56,25 @@ export class ComentarioResenaService {
 
   async findByResenaId(resenaId: number) {
     return this.prisma.comentariosResena.findMany({
-      where: { resenaId: Number(resenaId) }, // Asegúrate de que sea un número
+      where: { resenaId: Number(resenaId) },
+      include: {
+        usuario: {
+          select: { nombre: true, fotoPerfil: true },
+        },
+      },
+    });
+  }
+
+  // Buscar comentarios por placeId (todos los comentarios cuyas reseñas pertenecen a un place)
+  async findByPlaceId(placeId: number) {
+    return this.prisma.comentariosResena.findMany({
+      where: {
+        resena: {
+          is: {
+            placeId: Number(placeId),
+          },
+        },
+      },
       include: {
         usuario: {
           select: {
@@ -67,6 +86,33 @@ export class ComentarioResenaService {
     });
   }
   
+  async findByUsuarioId(usuarioId: number) {
+    // resenaId stores placeId directly — no resena FK join
+    const comentarios = await this.prisma.comentariosResena.findMany({
+      where: { usuarioId: Number(usuarioId) },
+      include: { usuario: { select: { nombre: true, fotoPerfil: true } } },
+      orderBy: { fecha: 'desc' },
+    }) as any[];
+
+    const placeIds = [...new Set(comentarios.map((c: any) => c.resenaId).filter(Boolean))] as number[];
+    const places = placeIds.length
+      ? await this.prisma.place.findMany({
+          where: { id: { in: placeIds } },
+          select: { id: true, nombre: true, categoria: true, imagen: true, descripcion: true },
+        })
+      : [];
+    const placeMap = new Map(places.map((p: any) => [p.id, p]));
+
+    return comentarios.map((c: any) => ({
+      ...c,
+      resena: {
+        placeId: c.resenaId,
+        nombreLugar: placeMap.get(c.resenaId)?.nombre ?? 'Lugar',
+        place: placeMap.get(c.resenaId) ?? null,
+      },
+    }));
+  }
+
   async findOne(id: number) {
     const comentario = await this.prisma.comentariosResena.findUnique({
       where: { id },

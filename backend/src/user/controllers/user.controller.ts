@@ -42,12 +42,13 @@ export class UserController {
   
     return {
       message: 'Inicio de sesión exitoso',
-      token: 'jwt-token-aqui', // Si usas JWT
+      token: 'jwt-token-aqui',
       user: {
         id: user.id,
         nombre: user.nombre,
         email: user.email,
-        fotoPerfil: user.fotoPerfil, // Incluye la foto de perfil
+        fotoPerfil: user.fotoPerfil,
+        cover: user.cover ?? null,
       },
     };
   }
@@ -63,26 +64,35 @@ export class UserController {
   }) {
     const { nombre, email, contrasena, googleId, provider, fotoPerfil } = body;
 
+    console.log('Register endpoint - provider:', provider, '| email:', email);
+
     // Validar que los campos requeridos estén presentes
     if (!nombre || !email || !contrasena) {
       throw new BadRequestException('Nombre, email y contraseña son requeridos');
     }
 
-    // Verificar si el usuario ya existe (para usuarios de Google)
+    // Para usuarios de Google: si ya existe, hacer login directo
     if (provider === 'google') {
       const existingUser = await this.userService.findByEmail(email);
       if (existingUser) {
-        // Usuario ya existe, devolver sus datos
+        console.log('Google user found, returning existing data for:', email);
         return {
-          message: 'Usuario ya registrado',
+          message: 'Inicio de sesión exitoso',
           user: {
             id: existingUser.id,
             nombre: existingUser.nombre,
             email: existingUser.email,
             fotoPerfil: existingUser.fotoPerfil,
+            cover: existingUser.cover ?? null,
           },
         };
       }
+    }
+
+    // Para registro normal: verificar si el email ya existe
+    const emailExists = await this.userService.findByEmail(email);
+    if (emailExists) {
+      throw new BadRequestException(`El email ${email} ya existe`);
     }
 
     // Crear el DTO para el usuario
@@ -92,7 +102,7 @@ export class UserController {
       contrasena,
       googleId: googleId || null,
       provider: provider || 'local',
-      emailVerificado: provider === 'google', // Auto-verificar si es Google
+      emailVerificado: provider === 'google',
       fotoPerfil,
     };
 
@@ -106,6 +116,7 @@ export class UserController {
         nombre: user.nombre,
         email: user.email,
         fotoPerfil: user.fotoPerfil,
+        cover: user.cover ?? null,
       },
     };
   }
@@ -126,8 +137,8 @@ export class UserController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: number, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(id, updateUserDto);
+  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.userService.update(+id, updateUserDto);
   }
 
   @Delete(':id')

@@ -17,8 +17,8 @@ export class ResenaService {
 
 
   async create(createResenaDto: CreateResenaDto, file?: Express.Multer.File) {
-    let fotoPrincipal ='https://via.placeholder.com/150'; 
-    // Subir la imagen a AWS S3 si se proporciona
+    let fotoPrincipal: string = (createResenaDto as any).fotoPrincipal || 'https://via.placeholder.com/150';
+    // Subir la imagen a AWS S3 si se proporciona (tiene prioridad sobre URL en body)
     if (file) {
       try {
         const bucketName = process.env.S3_BUCKET_NAME;
@@ -48,26 +48,24 @@ export class ResenaService {
         ...createResenaDto,
         fotoPrincipal, // Asignar la URL de la imagen (o null si no hay imagen)
       },
+      include: { fotos: true },
     });
 
     this.logger.log(`Reseña creada: ${JSON.stringify(resena)}`);
-    return resena;
+    return this.normalize(resena);
   }
 
   async findAll() {
-    return this.prisma.resena.findMany();
+    const list = await this.prisma.resena.findMany({ include: { fotos: true } });
+    return list.map(r => this.normalize(r));
   }
 
   async findOne(id: number) {
-    const resena = await this.prisma.resena.findUnique({
-      where: { id },
-    });
-
+    const resena = await this.prisma.resena.findUnique({ where: { id }, include: { fotos: true } });
     if (!resena) {
       throw new NotFoundException(`Reseña con ID ${id} no encontrada`);
     }
-
-    return resena;
+    return this.normalize(resena);
   }
 
   async update(id: number, updateResenaDto: UpdateResenaDto) {
@@ -76,10 +74,8 @@ export class ResenaService {
       fotoPrincipal: updateResenaDto.fotoPrincipal ?? undefined, // Convertir null a undefined
     };
 
-    return this.prisma.resena.update({
-      where: { id },
-      data,
-    });
+    const resena = await this.prisma.resena.update({ where: { id }, data, include: { fotos: true } });
+    return this.normalize(resena);
   }
 
   async remove(id: number) {
@@ -94,5 +90,17 @@ export class ResenaService {
     return this.prisma.resena.delete({
       where: { id },
     });
+  }
+
+  // Normalize resena object for frontend: map lat/lng and images
+  private normalize(resena: any) {
+    const fotos = Array.isArray(resena.fotos) ? resena.fotos.map((f: any) => f.url || f) : [];
+    return {
+      ...resena,
+      lat: (resena.latitud !== undefined && resena.latitud !== null) ? Number(resena.latitud) : undefined,
+      lng: (resena.longitud !== undefined && resena.longitud !== null) ? Number(resena.longitud) : undefined,
+      imagen: resena.fotoPrincipal || resena.imagen || null,
+      fotos,
+    };
   }
 }

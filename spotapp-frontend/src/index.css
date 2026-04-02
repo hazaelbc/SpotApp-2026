@@ -1,6 +1,8 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 
 /* Variables CSS para tema claro */
 :root {
@@ -21,6 +23,18 @@
   --accent-blue-hover: #3b7bc4;
 }
 
+/* Map-specific variables (light theme defaults) */
+:root {
+  --map-bg: #f8fafc;
+  --map-road: #94a3b8;
+  --map-label: #475569;
+  --map-accent-route: #22c55e; /* route color */
+  --map-accent-head: #16a34a;  /* moving marker */
+  --map-accent-dest: #ef4444;  /* destination marker */
+  --map-zoom-bg: #ffffff;      /* zoom control background */
+  --map-zoom-fg: #111827;      /* zoom icon color */
+}
+
 /* Variables CSS para tema oscuro */
 .dark {
   --bg-primary: #2A2A29;        /* Fondo más oscuro que el color base */
@@ -38,6 +52,16 @@
   --accent-green-hover: #16a34a;
   --accent-blue: #60a5fa;
   --accent-blue-hover: #3b82f6;
+
+  /* Map overrides for dark mode */
+  --map-bg: #0b0b0c;           /* very dark base */
+  --map-road: #263238;         /* subtle road lines */
+  --map-label: #94a3b8;        /* faint labels */
+  --map-accent-route: #7dd3fc; /* bright cyan route */
+  --map-accent-head: #60a5fa;  /* moving marker color */
+  --map-accent-dest: #fb7185;  /* destination marker */
+  --map-zoom-bg: rgba(255,255,255,0.06);
+  --map-zoom-fg: #e6eef8;
 }
 
 body {
@@ -51,4 +75,81 @@ body {
 /* Transiciones suaves para todos los elementos que usan las variables */
 * {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Leaflet styling to integrate with the app theme */
+.leaflet-container {
+  background-color: var(--map-bg);
+}
+
+/* Style interactive SVG paths (polylines, geojson) as theme-aware defaults */
+.leaflet-interactive {
+  stroke: var(--map-accent-route) !important;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Dashed preview route (when lower contrast needed) */
+.map-preview .leaflet-interactive {
+  stroke: var(--map-road) !important;
+  stroke-dasharray: 6 6 !important;
+  stroke-width: 4px !important;
+  opacity: 0.9;
+}
+
+/* Circle markers (head/destination/user) - defaults; components may override inline */
+.leaflet-container .leaflet-marker-icon,
+.leaflet-container .leaflet-overlay-pane circle {
+  fill: var(--map-accent-head) !important;
+  stroke: #fff !important;
+}
+
+/* Destination marker style */
+.leaflet-container .leaflet-destination {
+  fill: var(--map-accent-dest) !important;
+}
+
+/* Snake route: thin, fast-looking, white with glow */
+.snake-route.leaflet-interactive,
+.snake-route {
+  stroke: #ffffff !important;
+  stroke-width: 2px !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  filter: drop-shadow(0 0 14px rgba(255,255,255,0.95));
+}
+
+/* moving marker head should be white and glow */
+.leaflet-moving {
+  fill: #ffffff !important;
+  stroke: #ffffff !important;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.95));
+}
+
+/* Zoom control styling to match screenshot */
+.leaflet-control-zoom {
+  background: var(--map-zoom-bg);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.45);
+  padding: 4px;
+}
+.leaflet-control-zoom a {
+  color: var(--map-zoom-fg);
+  width: 34px;
+  height: 34px;
+  line-height: 34px;
+  display: inline-block;
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Popup style to be subtle on dark mode */
+.leaflet-popup-content-wrapper {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: 8px;
+}
+.dark .leaflet-popup-content-wrapper {
+  background: #111214;
+  color: var(--text-primary);
 }

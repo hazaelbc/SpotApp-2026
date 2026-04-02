@@ -1,0 +1,18 @@
+{
+  "name": "spotapp-2026",
+  "private": true,
+  "scripts": {
+    "install-skills": "node scripts/install-skills.js",
+    "skill:run": "node scripts/run-skill.js",
+    "skill:enhance-prompt": "node scripts/run-skill.js google-labs-code/stitch-skills enhance-prompt"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.9",
+    "@radix-ui/themes": "^3.3.0",
+    "@tailwindplus/elements": "^1.0.22",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^5.0.0"
+  }
+}
