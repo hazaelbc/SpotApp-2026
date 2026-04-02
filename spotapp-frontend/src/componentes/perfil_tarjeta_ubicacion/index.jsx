@@ -637,7 +637,7 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
                     ? '&copy; Stadia Maps &amp; OpenMapTiles &amp; OpenStreetMap contributors'
                     : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}
                   url={isDark
-                    ? 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
+                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
                     : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
                 />
 
