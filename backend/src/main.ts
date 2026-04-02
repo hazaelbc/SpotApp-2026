@@ -10,9 +10,16 @@ async function bootstrap() {
   app.use(require('express').json({ limit: '10mb' }));
   app.use(require('express').urlencoded({ limit: '10mb', extended: true }));
 
+  // Orígenes permitidos: locales siempre, más cualquier URL extra definida en ALLOWED_ORIGINS
+  // En Render/producción, setear ALLOWED_ORIGINS=https://mi-app.vercel.app,https://otro-dominio.com
+  const extraOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+    : [];
+
   const allowedOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    ...extraOrigins,
   ];
 
   app.enableCors({
@@ -31,12 +38,6 @@ async function bootstrap() {
     if (process.env.NODE_ENV !== 'production') {
       res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     }
-    next();
-  });
-
-  // Middleware para verificar las cabeceras de respuesta (útil para debug CORS)
-  app.use((req, res, next) => {
-    console.log('Response Headers Preview:', res.getHeaders());
     next();
   });
 

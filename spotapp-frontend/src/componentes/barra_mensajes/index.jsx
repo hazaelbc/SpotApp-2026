@@ -421,12 +421,22 @@ export const BarraMensajes = ({ children, className = "" }) => {
                                     className={`w-full flex items-center gap-3 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 text-left ${!isOpen ? 'justify-center p-2' : 'p-3'} ${selectedContactId === amigo.id ? 'bg-gray-100 dark:bg-[var(--bg-tertiary)]' : ''}`}
                                 >
                                     <div className="relative flex-shrink-0 mx-auto">
-                                        {amigo.fotoPerfil && amigo.fotoPerfil !== 'https://via.placeholder.com/150' ? (
-                                            <img src={amigo.fotoPerfil} alt={amigo.nombre} className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg object-cover" />
+                                        {isOpen ? (
+                                            amigo.fotoPerfil && amigo.fotoPerfil !== 'https://via.placeholder.com/150' ? (
+                                                <img src={amigo.fotoPerfil} alt={amigo.nombre} className="w-10 h-10 rounded-lg object-cover" />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)] flex items-center justify-center">
+                                                    <FiUsers className="w-4 h-4 text-[var(--text-tertiary)]" style={{ strokeWidth: 1 }} />
+                                                </div>
+                                            )
                                         ) : (
-                                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)] flex items-center justify-center">
-                                                <FiUsers className="w-4 h-4 text-[var(--text-tertiary)]" style={{ strokeWidth: 1 }} />
-                                            </div>
+                                            amigo.fotoPerfil && amigo.fotoPerfil !== 'https://via.placeholder.com/150' ? (
+                                                <img src={amigo.fotoPerfil} alt={amigo.nombre} className="w-8 h-8 rounded-lg object-cover object-top" />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)] flex items-center justify-center">
+                                                    <FiUsers className="w-4 h-4 text-[var(--text-tertiary)]" style={{ strokeWidth: 1 }} />
+                                                </div>
+                                            )
                                         )}
                                         {unreadCounts[amigo.id] > 0 && (
                                             <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold leading-none shadow-sm pointer-events-none">

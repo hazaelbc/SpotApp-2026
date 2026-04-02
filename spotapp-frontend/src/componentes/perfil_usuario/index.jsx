@@ -95,10 +95,7 @@ function LastRatedPlaces({ user, cardsToShow, cardWidth }) {
   const [places, setPlaces] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
   useEffect(() => {
-    // Esperar a que el user.id esté disponible
     if (!user?.id) return;
 
     let mounted = true;
@@ -107,7 +104,7 @@ function LastRatedPlaces({ user, cardsToShow, cardWidth }) {
 
     async function load() {
       try {
-        const res = await fetch(`${API_URL}/places/last-rated?userId=${user.id}&limit=3`);
+        const res = await fetch(`/api/places/last-rated?userId=${user.id}&limit=3`);
         if (!res.ok) {
           console.warn('[LastRatedPlaces] respuesta no ok:', res.status);
           return;
@@ -805,7 +802,7 @@ export default function PerfilUsuario({ user: propUser, onClose, onNavigateToPla
   );
 }
 
-const API_COMENTARIOS = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_COMENTARIOS = '/api';
 
 function ComentariosUsuario({ user, isOwnProfile, onNavigateToPlace }) {
   const [comentarios, setComentarios] = useState([]);

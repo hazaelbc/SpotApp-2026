@@ -56,13 +56,10 @@ export class ComentarioResenaService {
 
   async findByResenaId(resenaId: number) {
     return this.prisma.comentariosResena.findMany({
-      where: { resenaId: Number(resenaId) }, // Asegúrate de que sea un número
+      where: { resenaId: Number(resenaId) },
       include: {
         usuario: {
-          select: {
-            nombre: true,
-            fotoPerfil: true,
-          },
+          select: { nombre: true, fotoPerfil: true },
         },
       },
     });
@@ -90,21 +87,30 @@ export class ComentarioResenaService {
   }
   
   async findByUsuarioId(usuarioId: number) {
-    return this.prisma.comentariosResena.findMany({
+    // resenaId stores placeId directly — no resena FK join
+    const comentarios = await this.prisma.comentariosResena.findMany({
       where: { usuarioId: Number(usuarioId) },
-      include: {
-        usuario: { select: { nombre: true, fotoPerfil: true } },
-        resena: {
-          select: {
-            id: true,
-            nombreLugar: true,
-            placeId: true,
-            place: { select: { id: true, nombre: true, categoria: true, imagen: true, descripcion: true } },
-          },
-        },
-      },
+      include: { usuario: { select: { nombre: true, fotoPerfil: true } } },
       orderBy: { fecha: 'desc' },
-    });
+    }) as any[];
+
+    const placeIds = [...new Set(comentarios.map((c: any) => c.resenaId).filter(Boolean))] as number[];
+    const places = placeIds.length
+      ? await this.prisma.place.findMany({
+          where: { id: { in: placeIds } },
+          select: { id: true, nombre: true, categoria: true, imagen: true, descripcion: true },
+        })
+      : [];
+    const placeMap = new Map(places.map((p: any) => [p.id, p]));
+
+    return comentarios.map((c: any) => ({
+      ...c,
+      resena: {
+        placeId: c.resenaId,
+        nombreLugar: placeMap.get(c.resenaId)?.nombre ?? 'Lugar',
+        place: placeMap.get(c.resenaId) ?? null,
+      },
+    }));
   }
 
   async findOne(id: number) {

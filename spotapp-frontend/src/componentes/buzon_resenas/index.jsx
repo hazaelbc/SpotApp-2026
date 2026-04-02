@@ -40,8 +40,6 @@ export default function BuzonResenas({ placeId, resenaId, onAverageRatingChange,
     }
 
     const loadMore = useCallback(async () => {
-        // Backend returns all comments; keep loadMore as simple fetch-more guard
-        if (loading) return;
         const url = buildFetchUrl();
         if (!url) return;
         setLoading(true);
@@ -49,9 +47,7 @@ export default function BuzonResenas({ placeId, resenaId, onAverageRatingChange,
             const res = await fetch(url, { headers: { Accept: 'application/json' } });
             if (res.ok) {
                 const data = await res.json();
-                // Transform server shape to UI shape
                 const transformed = Array.isArray(data) ? data.map(transformServerComment) : [];
-                // Ensure we don't duplicate: replace with unique by id
                 setItems(prev => {
                     const map = new Map(prev.map(i => [i.id, i]));
                     transformed.forEach(d => map.set(d.id, d));
@@ -62,7 +58,7 @@ export default function BuzonResenas({ placeId, resenaId, onAverageRatingChange,
             console.warn('Error fetching comments', e);
         }
         setLoading(false);
-    }, [loading, placeId, resenaId]);
+    }, [placeId, resenaId]);
 
     const averageRating = useMemo(() => {
         const ratings = items
