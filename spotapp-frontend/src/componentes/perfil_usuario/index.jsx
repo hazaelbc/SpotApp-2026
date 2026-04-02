@@ -471,7 +471,7 @@ export default function PerfilUsuario({ user: propUser, onClose, onNavigateToPla
         console.log('Map instance created');
 
         // Create both dark and light tile layers
-        const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        const darkTiles = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
           attribution: '&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap contributors',
           maxZoom: 19
         });

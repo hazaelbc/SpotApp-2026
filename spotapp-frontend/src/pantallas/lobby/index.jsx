@@ -200,7 +200,7 @@ export const Lobby = ({ children }) => {
     const mapInstance = L.map(mapEl).setView([createLocationTemp.lat, createLocationTemp.longitud], 13);
     placeMapInstanceRef.current = mapInstance;
 
-    const darkTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    const darkTiles = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap contributors',
       maxZoom: 19,
     });
