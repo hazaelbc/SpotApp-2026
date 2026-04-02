@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
-import { testS3Connection } from '../src/AWS/services/awsService';
 
 dotenv.config();
 
@@ -42,7 +41,6 @@ async function bootstrap() {
   });
 
   await app.listen(process.env.PORT ?? 3001);
-  testS3Connection();
 }
 
 bootstrap();
