@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
 import Cropper from "react-easy-crop";
+import * as nsfwjs from "nsfwjs";
 import { useUser } from "../../userProvider";
 import { uploadImage } from "../../utils/uploadImage";
 
@@ -122,7 +123,8 @@ export default function OnboardingWizard({ onComplete }) {
   const [photoPreview, setPhotoPreview] = useState(
     user?.fotoPerfil && user.fotoPerfil !== "https://via.placeholder.com/150" ? user.fotoPerfil : null
   );
-  const [imageCheckState, setImageCheckState] = useState("idle"); // idle|ok
+  const [imageCheckState, setImageCheckState] = useState("idle"); // idle|checking|blocked|ok
+  const [imageBlockReason, setImageBlockReason] = useState("");
   const [nameError, setNameError] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -131,6 +133,7 @@ export default function OnboardingWizard({ onComplete }) {
   // Crop flow
   const [rawImageSrc, setRawImageSrc] = useState(null); // original before crop
   const [showCrop, setShowCrop] = useState(false);
+  const nsfwModelRef = useRef(null);
 
   const stepLabels = isGoogle
     ? ["Tu nombre", "Foto de perfil", "Términos"]
@@ -148,11 +151,37 @@ export default function OnboardingWizard({ onComplete }) {
     setShowCrop(true);
   };
 
-  const handleCropApply = (blob) => {
+  const handleCropApply = async (blob) => {
     setShowCrop(false);
-    setPhotoPreview(URL.createObjectURL(blob));
-    setPhotoBlob(blob);
-    setImageCheckState("ok");
+    const croppedUrl = URL.createObjectURL(blob);
+    setPhotoPreview(croppedUrl);
+    setPhotoBlob(null);
+    setImageCheckState("checking");
+    setImageBlockReason("");
+
+    try {
+      if (!nsfwModelRef.current) nsfwModelRef.current = await nsfwjs.load();
+      const img = new Image();
+      img.src = croppedUrl;
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+      const predictions = await nsfwModelRef.current.classify(img);
+      // Umbrales altos — solo bloquea contenido explícito real, no retratos normales
+      const rules = { Porn: 0.70, Hentai: 0.70, Sexy: 0.90 };
+      const blocked = predictions.find((p) => rules[p.className] != null && p.probability >= rules[p.className]);
+      if (blocked) {
+        setImageBlockReason("Contenido inapropiado detectado. Sube otra foto.");
+        setImageCheckState("blocked");
+        setPhotoPreview(null);
+        setPhotoBlob(null);
+        return;
+      }
+      setImageCheckState("ok");
+      setPhotoBlob(blob);
+    } catch {
+      // Si el modelo no carga (red), fail-open: se acepta la imagen
+      setImageCheckState("ok");
+      setPhotoBlob(blob);
+    }
   };
 
   const handleCropCancel = () => {
@@ -312,6 +341,12 @@ export default function OnboardingWizard({ onComplete }) {
                     Subir foto
                   </label>
                   <input id="onboarding-photo" type="file" accept="image/*" className="hidden" onChange={handleFileSelected} />
+                  {imageCheckState === "checking" && (
+                    <div className="flex items-center gap-2 text-[12px] text-[var(--text-tertiary)]">
+                      <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeOpacity={0.25}/><path d="M21 12a9 9 0 00-9-9"/></svg>
+                      Verificando...
+                    </div>
+                  )}
                   {imageCheckState === "ok" && (
                     <span className="text-[12px] text-green-500 flex items-center gap-1">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -319,6 +354,12 @@ export default function OnboardingWizard({ onComplete }) {
                     </span>
                   )}
                 </div>
+                {imageCheckState === "blocked" && (
+                  <p className="text-[12px] text-red-400 flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                    {imageBlockReason}
+                  </p>
+                )}
               </>
             )}
 
@@ -385,7 +426,7 @@ export default function OnboardingWizard({ onComplete }) {
             {step < totalSteps ? (
               <button
                 onClick={handleNext}
-                disabled={false}
+                disabled={step === photoStepIndex && imageCheckState === "checking"}
                 className="px-5 py-2.5 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 Siguiente
