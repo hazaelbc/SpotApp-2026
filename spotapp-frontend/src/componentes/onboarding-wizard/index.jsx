@@ -218,7 +218,7 @@ export default function OnboardingWizard({ onComplete }) {
 
       if (Object.keys(body).length > 0) {
         const res = await fetch(`${API_URL}/users/${user.id}`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
