@@ -93,9 +93,14 @@ export const Lobby = ({ children }) => {
         descripcion: createDescripcion || '',
       };
       if (createImageFile) body.imagen = createImageFile;
-      if (createLocationCoords) {
-        body.latitud = createLocationCoords.lat;
-        body.longitud = createLocationCoords.longitud;
+      const coordsToUse = createLocationCoords || (
+        Number.isFinite(Number(user?.lat)) && Number.isFinite(Number(user?.lng))
+          ? { lat: user.lat, longitud: user.lng }
+          : null
+      );
+      if (coordsToUse) {
+        body.latitud = coordsToUse.lat;
+        body.longitud = coordsToUse.longitud;
         body.ubicacionLabel = createLocationLabel || '';
       }
       if (user && user.id) body.creatorId = user.id;
