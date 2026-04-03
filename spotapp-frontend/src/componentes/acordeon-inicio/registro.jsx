@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header_Login from "../Header_Login";
 import { signInWithGoogle } from "../../config/firebase";
+import { useUser } from "../../userProvider";
 
 const Registro = ({ onSubmit }) => {
   const [nombre, setNombre] = useState("");
@@ -13,6 +14,7 @@ const Registro = ({ onSubmit }) => {
   const [passwordError, setPasswordError] = useState("");
   const [terminosError, setTerminosError] = useState("");
   const navigate = useNavigate();
+  const { setUser } = useUser();
 
   // Validar formato de email
   const isValidEmail = (email) => {
@@ -124,6 +126,8 @@ const Registro = ({ onSubmit }) => {
 
       if (response.ok) {
         alert('¡Registro exitoso con Google! Bienvenido ' + data.user.nombre);
+        setUser(data.user);
+        localStorage.setItem("authToken", "google-token-" + user.uid);
         navigate('/lobby');
       } else {
         // Si el usuario ya existe

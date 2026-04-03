@@ -30,17 +30,12 @@ export const Lobby = ({ children }) => {
   const { isDark } = useTheme();
 
   const [showOnboarding, setShowOnboarding] = useState(() => {
-    if (!user?.id) return false;
-    return !localStorage.getItem(`spotapp_onboarding_done_${user.id}`);
+    return Boolean(user?.onboardingRequired);
   });
 
   useEffect(() => {
-    if (!user?.id) {
-      setShowOnboarding(false);
-      return;
-    }
-    setShowOnboarding(!localStorage.getItem(`spotapp_onboarding_done_${user.id}`));
-  }, [user?.id]);
+    setShowOnboarding(Boolean(user?.onboardingRequired));
+  }, [user?.id, user?.onboardingRequired]);
 
   const [location, setLocation] = useState('');
   const [draftLocation, setDraftLocation] = useState('');
@@ -368,6 +363,9 @@ export const Lobby = ({ children }) => {
     {showOnboarding && (
       <OnboardingWizard onComplete={() => {
         try { if (user?.id) localStorage.setItem(`spotapp_onboarding_done_${user.id}`, '1'); } catch (e) {}
+        try {
+          setUser((prev) => (prev ? { ...prev, onboardingRequired: false } : prev));
+        } catch (e) {}
         setShowOnboarding(false);
       }} />
     )}

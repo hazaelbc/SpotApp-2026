@@ -223,8 +223,10 @@ export default function OnboardingWizard({ onComplete }) {
           body: JSON.stringify(body),
         });
         if (res.ok) {
-          setUser((prev) => ({ ...prev, ...body }));
+          setUser((prev) => ({ ...prev, ...body, onboardingRequired: false }));
         }
+      } else {
+        setUser((prev) => ({ ...prev, onboardingRequired: false }));
       }
 
       localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
@@ -238,6 +240,7 @@ export default function OnboardingWizard({ onComplete }) {
 
   const handleSkip = () => {
     localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
+    setUser((prev) => ({ ...prev, onboardingRequired: false }));
     onComplete?.();
   };
 

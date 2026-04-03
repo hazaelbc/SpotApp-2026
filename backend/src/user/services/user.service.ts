@@ -195,6 +195,23 @@ export class UserService {
     };
   }
 
+  // Marca el login y devuelve si era el primer ingreso del usuario
+  async markLoginAndCheckFirst(userId: number): Promise<boolean> {
+    const current = await this.prismaService.usuario.findUnique({
+      where: { id: userId },
+      select: { lastLogin: true },
+    });
+
+    const isFirstLogin = !current?.lastLogin;
+
+    await this.prismaService.usuario.update({
+      where: { id: userId },
+      data: { lastLogin: new Date() },
+    });
+
+    return isFirstLogin;
+  }
+
   // Encontrar o crear usuario con Google OAuth
   async findOrCreateGoogleUser(googleProfile: any): Promise<User> {
     const { id: googleId, emails, displayName, photos } = googleProfile;
