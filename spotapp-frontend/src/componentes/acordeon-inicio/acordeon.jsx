@@ -37,9 +37,10 @@ const Login = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
+        // Guardar síncronamente antes de navegar — window.location no espera el useEffect de userProvider
+        localStorage.setItem("user", JSON.stringify(data.user));
         localStorage.setItem("authToken", "google-token-" + fireUser.uid);
-        // Usar href en vez de navigate — tras redirect móvil necesita recarga limpia
+        setUser(data.user);
         window.location.href = '/lobby';
       }
     }).catch((e) => { console.error('[GoogleRedirect]', e); });
