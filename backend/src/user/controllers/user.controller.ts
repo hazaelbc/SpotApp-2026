@@ -78,7 +78,6 @@ export class UserController {
     if (provider === 'google') {
       const existingUser = await this.userService.findByEmail(email);
       if (existingUser) {
-        const onboardingRequired = await this.userService.markLoginAndCheckFirst(existingUser.id);
         console.log('Google user found, returning existing data for:', email);
         return {
           message: 'Inicio de sesión exitoso',
@@ -90,7 +89,6 @@ export class UserController {
             cover: existingUser.cover ?? null,
             provider: existingUser.provider ?? 'google',
             googleId: existingUser.googleId ?? googleId ?? null,
-            onboardingRequired,
           },
         };
       }
@@ -116,11 +114,6 @@ export class UserController {
     // Crear el usuario en la base de datos
     const user = await this.userService.create(createUserDto);
 
-    const onboardingRequired =
-      provider === 'google'
-        ? await this.userService.markLoginAndCheckFirst(user.id)
-        : true;
-
     return {
       message: 'Usuario registrado exitosamente',
       user: {
@@ -131,7 +124,6 @@ export class UserController {
         cover: user.cover ?? null,
         provider: user.provider ?? 'local',
         googleId: user.googleId ?? null,
-        onboardingRequired,
       },
     };
   }
