@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -15,21 +15,7 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Detecta móvil real por User-Agent (excluye DevTools emulation)
-function isMobile() {
-  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
-// En móvil usa redirect (no hay popup). En desktop usa popup.
 export const signInWithGoogle = async () => {
-  if (isMobile()) {
-    await signInWithRedirect(auth, googleProvider);
-    // La página se recarga — el resultado se recoge en handleGoogleRedirect
-    return null;
-  }
   const result = await signInWithPopup(auth, googleProvider);
   return result.user;
 };
-
-// Llama esto al cargar la app para recoger el resultado del redirect
-export const handleGoogleRedirect = () => getRedirectResult(auth);

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../userProvider.jsx";
-import { signInWithGoogle, handleGoogleRedirect } from "../../config/firebase";
+import { signInWithGoogle } from "../../config/firebase";
 import Header_Login from "../Header_Login";
 
 
@@ -17,34 +17,6 @@ const Login = () => {
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
   const vantaRef = useRef(null);
-
-  // Recoger resultado de signInWithRedirect (móvil)
-  useEffect(() => {
-    handleGoogleRedirect().then(async (result) => {
-      if (!result?.user) return;
-      const fireUser = result.user;
-      const response = await fetch('/api/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: fireUser.displayName,
-          email: fireUser.email,
-          contrasena: fireUser.uid,
-          googleId: fireUser.uid,
-          provider: 'google',
-          fotoPerfil: fireUser.photoURL,
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        // Guardar síncronamente antes de navegar — window.location no espera el useEffect de userProvider
-        localStorage.setItem("user", JSON.stringify(data.user));
-        localStorage.setItem("authToken", "google-token-" + fireUser.uid);
-        setUser(data.user);
-        window.location.href = '/lobby';
-      }
-    }).catch((e) => { console.error('[GoogleRedirect]', e); });
-  }, []);
 
   // Validar formato de email
   const isValidEmail = (email) => {
@@ -75,9 +47,6 @@ const Login = () => {
     console.log('Iniciando sesión con Google...');
     try {
       const user = await signInWithGoogle();
-      // En móvil, signInWithGoogle inicia el redirect y retorna null — el resultado
-      // se procesa en el useEffect de arriba cuando la página recarga.
-      if (!user) return;
       console.log('Usuario de Google obtenido:', user);
 
       const response = await fetch('/api/users/register', {
