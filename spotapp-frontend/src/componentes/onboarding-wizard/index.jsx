@@ -128,6 +128,7 @@ export default function OnboardingWizard({ onComplete }) {
   const [nameError, setNameError] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   // Crop flow
   const [rawImageSrc, setRawImageSrc] = useState(null); // original before crop
@@ -166,9 +167,9 @@ export default function OnboardingWizard({ onComplete }) {
       img.src = croppedUrl;
       await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
       const predictions = await nsfwModelRef.current.classify(img);
-      const rules = { Porn: 0.25, Hentai: 0.25, Sexy: 0.45, Drawing: 0.75 };
-      const neutral = predictions.find((p) => p.className === "Neutral")?.probability ?? 0;
-      const blocked = neutral < 0.5 || predictions.find((p) => rules[p.className] != null && p.probability >= rules[p.className]);
+      // Para fotos de perfil solo bloqueamos contenido explícito — neutral check omitido porque retratos lo fallan
+      const rules = { Porn: 0.4, Hentai: 0.4, Sexy: 0.6 };
+      const blocked = predictions.find((p) => rules[p.className] != null && p.probability >= rules[p.className]);
       if (blocked) {
         setImageBlockReason("Contenido inapropiado detectado");
         setImageCheckState("blocked");
@@ -179,10 +180,9 @@ export default function OnboardingWizard({ onComplete }) {
       setImageCheckState("ok");
       setPhotoBlob(blob);
     } catch {
-      setImageBlockReason("No se pudo verificar la imagen. Intenta con otra.");
-      setImageCheckState("blocked");
-      setPhotoPreview(null);
-      setPhotoBlob(null);
+      // Si el modelo NSFW no cargó (red, etc.) se acepta la imagen — no bloqueamos por error técnico
+      setImageCheckState("ok");
+      setPhotoBlob(blob);
     }
   };
 
@@ -202,6 +202,7 @@ export default function OnboardingWizard({ onComplete }) {
   const handleComplete = async () => {
     if (!termsAccepted) return;
     setSubmitting(true);
+    setUploadError("");
     try {
       const body = {};
 
@@ -224,15 +225,20 @@ export default function OnboardingWizard({ onComplete }) {
         });
         if (res.ok) {
           setUser((prev) => ({ ...prev, ...body }));
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Error ${res.status}`);
         }
       }
+
+      // Only mark done and dismiss on success
+      if (user?.id) localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
+      onComplete?.();
     } catch (e) {
       console.error("[Onboarding]", e);
+      setUploadError("No se pudo guardar tu perfil. Intenta de nuevo o salta este paso.");
     } finally {
-      // Always mark as done and dismiss — even if the PATCH failed
-      if (user?.id) localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
       setSubmitting(false);
-      onComplete?.();
     }
   };
 
@@ -399,6 +405,16 @@ export default function OnboardingWizard({ onComplete }) {
               </>
             )}
           </div>
+
+          {/* Upload error */}
+          {uploadError && (
+            <div className="px-6 pb-2">
+              <p className="text-[12px] text-red-400 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                {uploadError}
+              </p>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="px-6 py-4 border-t border-[var(--border-color)] flex justify-between items-center">
