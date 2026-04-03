@@ -15,9 +15,9 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Detecta si es móvil (sin hover, pantalla táctil)
+// Detecta móvil real por User-Agent (excluye DevTools emulation)
 function isMobile() {
-  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia("(pointer: coarse)").matches;
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
 // En móvil usa redirect (no hay popup). En desktop usa popup.
