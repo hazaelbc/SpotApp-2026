@@ -39,9 +39,10 @@ const Login = () => {
         const data = await response.json();
         setUser(data.user);
         localStorage.setItem("authToken", "google-token-" + fireUser.uid);
-        navigate('/lobby');
+        // Usar href en vez de navigate — tras redirect móvil necesita recarga limpia
+        window.location.href = '/lobby';
       }
-    }).catch(() => {});
+    }).catch((e) => { console.error('[GoogleRedirect]', e); });
   }, []);
 
   // Validar formato de email
