@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { FiMail, FiChevronRight, FiChevronLeft, FiSend, FiUsers } from "react-icons/fi";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { FiMail, FiChevronRight, FiChevronLeft, FiSend, FiUsers, FiX } from "react-icons/fi";
 import FotoPerfil from "../foto-perfil";
 import { useUser } from "../../userProvider";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-function PlaceCard({ place, fromMe }) {
+function PlaceCard({ place, fromMe, timeLabel, mobile = false, onRequestClose, onConfirmNavigate }) {
     const [imagen, setImagen] = useState(place.imagen || null);
     useEffect(() => {
         if (imagen || !place.id) return;
@@ -19,10 +19,57 @@ function PlaceCard({ place, fromMe }) {
             .catch(() => {});
     }, [place.id]);
 
+    const handleOpenPlace = async () => {
+        const goToPlace = (detail) => {
+            if (mobile) {
+                if (typeof onConfirmNavigate === 'function') {
+                    onConfirmNavigate(detail);
+                    return;
+                }
+                try { onRequestClose && onRequestClose(); } catch (_) {}
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('navigate-to-place', { detail }));
+                }, 120);
+                return;
+            }
+            window.dispatchEvent(new CustomEvent('navigate-to-place', { detail }));
+        };
+
+        let placeId = place?.id ?? place?.placeId ?? place?.resenaId ?? null;
+        if (!placeId && place?.raw?.id) placeId = place.raw.id;
+
+        // Intentar enriquecer desde backend para abrir la reseña completa
+        if (placeId) {
+            try {
+                const res = await fetch(`${API_URL}/places/${placeId}`);
+                if (res.ok) {
+                    const p = await res.json();
+                    const normalized = {
+                        id: p.id,
+                        nombre: p.nombre || place.nombre || `Lugar ${p.id}`,
+                        categoria: p.categoria || place.categoria || 'Lugar',
+                        descripcion: p.descripcion || place.descripcion || '',
+                        imagen: p.imagen || (Array.isArray(p.fotos) ? p.fotos[0] : null) || place.imagen || null,
+                        calificacion: Number.isFinite(Number(p.calificacion)) ? Number(p.calificacion) : (Number(place.calificacion) || 0),
+                        vistas: Number.isFinite(Number(p.vistas)) ? Number(p.vistas) : (Number(place.vistas) || 0),
+                        lat: p.lat ?? p.latitud ?? place.lat,
+                        lng: p.lng ?? p.longitud ?? place.lng,
+                        raw: p,
+                    };
+                    goToPlace(normalized);
+                    return;
+                }
+            } catch (_) {}
+        }
+
+        // Fallback: enviar lo que tengamos
+        goToPlace(place);
+    };
+
     return (
-        <div className={`flex ${fromMe ? 'justify-end' : 'justify-start'} w-full`}>
+        <div className={`flex flex-col ${fromMe ? 'items-end' : 'items-start'} w-full`}>
             <button
-                onClick={() => window.dispatchEvent(new CustomEvent('navigate-to-place', { detail: place }))}
+                onClick={handleOpenPlace}
                 className="text-left rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-secondary)] transition-opacity hover:opacity-80 active:opacity-60"
                 style={{ width: '72%' }}
             >
@@ -38,6 +85,7 @@ function PlaceCard({ place, fromMe }) {
                     <p className="text-[10px] text-[var(--text-secondary)] mt-1">Ver reseña →</p>
                 </div>
             </button>
+            <span className="mt-1 text-[10px] text-[var(--text-tertiary)]">{timeLabel}</span>
         </div>
     );
 }
@@ -45,7 +93,7 @@ function PlaceCard({ place, fromMe }) {
 // Extraído fuera de BarraMensajes para que React no lo trate como tipo nuevo en cada render
 function SendBar({ value, onChange, onSend, inputRef }) {
     return (
-        <div className="p-2 border-t border-gray-300 dark:border-[var(--border-color)] relative z-[100] bg-transparent shrink-0">
+        <div className="p-2 border-t border-gray-300 dark:border-[var(--border-color)] relative z-[100] bg-[var(--bg-primary)] shrink-0 sticky bottom-0 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]">
             <div className="relative flex items-center">
                 <input
                     ref={inputRef}
@@ -69,10 +117,11 @@ function SendBar({ value, onChange, onSend, inputRef }) {
 }
 
 // Extraído fuera de BarraMensajes — evita el remount en cada re-render del padre
-function ChatPanel({ amigo, onBack, setUnreadCounts }) {
+function ChatPanel({ amigo, onBack, setUnreadCounts, mobile = false, onRequestClose }) {
     const { user } = useUser();
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState([]);
+    const [confirmPlace, setConfirmPlace] = useState(null);
     const [convId, setConvId] = useState(null);
     const [loadingConv, setLoadingConv] = useState(true);
     const scrollRef = useRef();
@@ -84,6 +133,41 @@ function ChatPanel({ amigo, onBack, setUnreadCounts }) {
         if (!scrollRef.current) return;
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, []);
+
+    const formatTime = useCallback((value) => {
+        const d = value ? new Date(value) : new Date();
+        if (Number.isNaN(d.getTime())) return '';
+        return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    }, []);
+
+    const formatDayLabel = useCallback((value) => {
+        const d = value ? new Date(value) : new Date();
+        if (Number.isNaN(d.getTime())) return 'Sin fecha';
+        const today = new Date();
+        const y = new Date();
+        y.setDate(today.getDate() - 1);
+        const key = d.toDateString();
+        if (key === today.toDateString()) return 'Hoy';
+        if (key === y.toDateString()) return 'Ayer';
+        return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+    }, []);
+
+    const timeline = useMemo(() => {
+        const out = [];
+        let lastDayKey = '';
+        for (const m of messages) {
+            const created = m?.createdAt || m?.fecha || m?.timestamp || null;
+            const date = created ? new Date(created) : new Date();
+            const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+            const dayKey = `${safeDate.getFullYear()}-${safeDate.getMonth()}-${safeDate.getDate()}`;
+            if (dayKey !== lastDayKey) {
+                out.push({ type: 'day', key: `day-${dayKey}`, label: formatDayLabel(safeDate) });
+                lastDayKey = dayKey;
+            }
+            out.push({ type: 'msg', key: `msg-${m.id}`, message: m, timeLabel: formatTime(safeDate) });
+        }
+        return out;
+    }, [messages, formatDayLabel, formatTime]);
 
     // Obtener o crear conversación y cargar mensajes iniciales
     useEffect(() => {
@@ -171,8 +255,22 @@ function ChatPanel({ amigo, onBack, setUnreadCounts }) {
         inputRef.current?.focus();
     };
 
+    const handleConfirmNavigate = useCallback((detail) => {
+        setConfirmPlace(detail);
+    }, []);
+
+    const proceedToPlace = useCallback(() => {
+        if (!confirmPlace) return;
+        const detail = confirmPlace;
+        setConfirmPlace(null);
+        try { onRequestClose && onRequestClose(); } catch (_) {}
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('navigate-to-place', { detail }));
+        }, 120);
+    }, [confirmPlace, onRequestClose]);
+
     return (
-        <div className="flex flex-col w-full h-full min-h-0 overflow-hidden border-t border-gray-300 dark:border-[var(--border-color)]">
+        <div className="flex flex-col w-full h-full min-h-0 overflow-hidden border-t border-gray-300 dark:border-[var(--border-color)] relative">
             {/* Header */}
             <div className="px-3 py-2 border-b border-gray-300 dark:border-[var(--border-color)] flex items-center gap-3 shrink-0 bg-transparent">
                 <button onClick={onBack} className="p-1 rounded hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]">
@@ -198,7 +296,18 @@ function ChatPanel({ amigo, onBack, setUnreadCounts }) {
                         Aún no hay mensajes.<br/>¡Di algo!
                     </div>
                 ) : (
-                    messages.map((m) => {
+                    timeline.map((entry) => {
+                        if (entry.type === 'day') {
+                            return (
+                                <div key={entry.key} className="py-1 flex items-center justify-center">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
+                                        {entry.label}
+                                    </span>
+                                </div>
+                            );
+                        }
+
+                        const m = entry.message;
                         const fromMe = m.usuarioId === user?.id;
                         const content = m.content || '';
 
@@ -212,16 +321,17 @@ function ChatPanel({ amigo, onBack, setUnreadCounts }) {
                             if (nombre) place = { nombre };
                         }
 
-                        if (place) return <PlaceCard key={m.id} place={place} fromMe={fromMe} />;
+                        if (place) return <PlaceCard key={entry.key} place={place} fromMe={fromMe} timeLabel={entry.timeLabel} mobile={mobile} onRequestClose={onRequestClose} onConfirmNavigate={handleConfirmNavigate} />;
 
                         return (
-                            <div key={m.id} className={`flex ${fromMe ? 'justify-end' : 'justify-start'} w-full`}>
+                            <div key={entry.key} className={`flex flex-col ${fromMe ? 'items-end' : 'items-start'} w-full`}>
                                 <div className={`px-3 py-2 rounded-xl text-sm max-w-[80%] break-words ${fromMe
                                     ? 'bg-[var(--text-primary)] text-[var(--bg-primary)]'
                                     : 'bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-primary)]'
                                 }`}>
                                     {content}
                                 </div>
+                                <span className="mt-1 text-[10px] text-[var(--text-tertiary)]">{entry.timeLabel}</span>
                             </div>
                         );
                     })
@@ -231,11 +341,36 @@ function ChatPanel({ amigo, onBack, setUnreadCounts }) {
 
             {/* Input */}
             <SendBar value={input} onChange={(e) => setInput(e.target.value)} onSend={send} inputRef={inputRef} />
+
+            {/* Mini modal confirmación (solo móvil) */}
+            {mobile && confirmPlace && (
+                <div className="absolute inset-0 z-[130] flex items-end justify-center p-3">
+                    <div className="absolute inset-0 bg-black/45" onClick={() => setConfirmPlace(null)} />
+                    <div className="relative w-full max-w-sm rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-color)] shadow-xl p-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
+                        <p className="text-sm font-semibold text-[var(--text-primary)]">Ir a la reseña</p>
+                        <p className="mt-1 text-xs text-[var(--text-tertiary)]">Se cerrará el chat para abrir la reseña compartida.</p>
+                        <div className="mt-4 flex items-center justify-end gap-2">
+                            <button
+                                onClick={() => setConfirmPlace(null)}
+                                className="px-3 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={proceedToPlace}
+                                className="px-3.5 py-2 rounded-lg text-sm font-medium bg-[var(--text-primary)] text-[var(--bg-primary)] hover:opacity-90 transition-opacity"
+                            >
+                                Ir a la reseña
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-export const BarraMensajes = ({ children, className = "" }) => {
+export const BarraMensajes = ({ children, className = "", mobile = false, onRequestClose }) => {
     const { user } = useUser();
     const [isOpen, setIsOpen] = useState(true);
     const [amigos, setAmigos] = useState([]);
@@ -332,6 +467,13 @@ export const BarraMensajes = ({ children, className = "" }) => {
         return () => window.removeEventListener('gallery-lightbox', onGalleryEvent);
     }, []);
 
+    useEffect(() => {
+        if (mobile) {
+            setIsOpen(true);
+            setActiveConversation(null);
+        }
+    }, [mobile]);
+
     const scrollToLetter = (letter) => {
         const container = contactsRef.current;
         if (!container) return;
@@ -344,43 +486,57 @@ export const BarraMensajes = ({ children, className = "" }) => {
     };
 
     return(
-        <aside className={`${isOpen ? 'w-80' : 'w-20'} h-full flex transition-all duration-300 overflow-x-hidden ${className}`}>
+        <aside className={`${mobile ? 'w-full h-[100dvh]' : (isOpen ? 'w-80' : 'w-20')} ${mobile ? '' : 'h-full'} flex transition-all duration-300 overflow-x-hidden ${className}`}>
             {/* Línea divisoria con márgenes superior e inferior */}
-            <div className="py-4">
-                <div className="h-full border-l border-gray-300 dark:border-[var(--border-color)]"></div>
-            </div>
+            {!mobile && (
+                <div className="py-4">
+                    <div className="h-full border-l border-gray-300 dark:border-[var(--border-color)]"></div>
+                </div>
+            )}
 
-            <div className="flex-1 flex flex-col p-4 relative">
+            <div className={`flex-1 min-h-0 flex flex-col relative ${mobile ? 'p-3' : 'p-4'}`}>
                 {/* Título con ícono de correo y botón de colapsar */}
-                <div className="mb-4 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-between">
                     {isOpen ? (
                         <>
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-[var(--text-primary)] flex items-center gap-2">
                                 <FiMail className="w-4 h-4 sm:w-5 sm:h-5" style={{ strokeWidth: 1 }} />
                                 Mensajes
                             </h2>
-                            <button
-                                onClick={() => {
-                                    setIsOpen(false);
-                                    setActiveConversation(null);
-                                }}
-                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
-                                aria-label="Cerrar barra de mensajes"
-                            >
-                                <FiChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
-                            </button>
+                            {mobile ? (
+                                <button
+                                    onClick={() => onRequestClose && onRequestClose()}
+                                    className="p-2 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
+                                    aria-label="Cerrar mensajes"
+                                >
+                                    <FiX className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => {
+                                        setIsOpen(false);
+                                        setActiveConversation(null);
+                                    }}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
+                                    aria-label="Cerrar barra de mensajes"
+                                >
+                                    <FiChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
+                                </button>
+                            )}
                         </>
                     ) : (
-                        <button
-                            onClick={() => {
-                                setIsOpen(true);
-                                setActiveConversation(null);
-                            }}
-                            className="w-full p-1.5 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
-                            aria-label="Abrir barra de mensajes"
-                        >
-                            <FiChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)] mx-auto" style={{ strokeWidth: 1 }} />
-                        </button>
+                        !mobile && (
+                            <button
+                                onClick={() => {
+                                    setIsOpen(true);
+                                    setActiveConversation(null);
+                                }}
+                                className="w-full p-1.5 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200"
+                                aria-label="Abrir barra de mensajes"
+                            >
+                                <FiChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)] mx-auto" style={{ strokeWidth: 1 }} />
+                            </button>
+                        )
                     )}
                 </div>
 
@@ -390,7 +546,7 @@ export const BarraMensajes = ({ children, className = "" }) => {
                         <div
                             ref={contactsRef}
                             onScroll={handleScroll}
-                            className="flex-1 overflow-y-auto pr-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative"
+                            className={`flex-1 overflow-y-auto ${mobile ? 'pr-0' : 'pr-8'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] relative`}
                             style={{ scrollBehavior: 'smooth' }}
                         >
                             <div className="space-y-2">
@@ -413,12 +569,19 @@ export const BarraMensajes = ({ children, className = "" }) => {
                                     key={amigo.id}
                                     ref={el => itemRefs.current[index] = el}
                                     data-letter={amigo.nombre ? amigo.nombre.trim().charAt(0).toUpperCase() : ''}
-                                    onClick={() => setSelectedContactId(amigo.id)}
+                                    onClick={() => {
+                                        if (mobile) {
+                                            setActiveConversation(amigo);
+                                            setIsOpen(true);
+                                            return;
+                                        }
+                                        setSelectedContactId(amigo.id);
+                                    }}
                                     onDoubleClick={() => {
                                         setActiveConversation(amigo);
                                         setIsOpen(true);
                                     }}
-                                    className={`w-full flex items-center gap-3 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 text-left ${!isOpen ? 'justify-center p-2' : 'p-3'} ${selectedContactId === amigo.id ? 'bg-gray-100 dark:bg-[var(--bg-tertiary)]' : ''}`}
+                                    className={`w-full flex items-center gap-3 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 text-left ${!isOpen ? 'justify-center p-2' : (mobile ? 'p-3.5' : 'p-3')} ${selectedContactId === amigo.id ? 'bg-gray-100 dark:bg-[var(--bg-tertiary)]' : ''}`}
                                 >
                                     <div className="relative flex-shrink-0 mx-auto">
                                         {isOpen ? (
@@ -463,7 +626,7 @@ export const BarraMensajes = ({ children, className = "" }) => {
                         </div>
 
                         {/* Índice A-Z */}
-                        {isOpen && !externalModalOpen && (
+                        {isOpen && !mobile && !externalModalOpen && (
                             <div className="absolute inset-y-0 right-0 w-8 bg-transparent rounded z-50 pointer-events-auto flex flex-col justify-center">
                                 <div className="flex flex-col items-center justify-between h-full max-h-[800px] text-[10px] select-none py-1">
                                     {letters.map((L) => (
@@ -483,6 +646,8 @@ export const BarraMensajes = ({ children, className = "" }) => {
                             amigo={activeConversation}
                             onBack={() => setActiveConversation(null)}
                             setUnreadCounts={setUnreadCounts}
+                            mobile={mobile}
+                            onRequestClose={onRequestClose}
                         />
                     </div>
                 )}

@@ -10,7 +10,7 @@ const Header_Login = () => {
       className="fixed top-0 left-0 right-0 z-50 w-full h-16 bg-gray-900 text-white shadow-md"
       style={{ backgroundColor: '#A22522' }}
     >
-      <div className="h-full px-2 sm:px-4 lg:px-6 flex items-center">
+      <div className="h-full px-2 sm:px-4 lg:px-6 flex items-center gap-2">
         {/* Logo - izquierda */}
         <div className="flex items-center gap-3">
           {!logoLoaded && (
@@ -26,17 +26,17 @@ const Header_Login = () => {
         </div>
 
         {/* Espaciador para empujar opciones a la derecha */}
-        <div className="flex-1"></div>
+        <div className="flex-1 min-w-0"></div>
 
         {/* Opciones - derecha */}
-        <div className="flex items-center gap-2 sm:gap-4 lg:gap-8">
-          <span onClick={() => navigate("/lobby") } className="text-[10px] sm:text-xs lg:text-base font-medium hover:text-gray-400 cursor-pointer uppercase tracking-tight sm:tracking-wide whitespace-nowrap">
+        <div className="flex items-center gap-1.5 sm:gap-4 lg:gap-8 min-w-0 overflow-x-auto">
+          <span onClick={() => navigate("/lobby") } className="text-[10px] sm:text-xs lg:text-base font-medium hover:text-gray-400 cursor-pointer uppercase tracking-tight sm:tracking-wide whitespace-nowrap shrink-0">
             Iniciar Sesión
           </span>
-          <span onClick={() => navigate("/registro") } className="text-[10px] sm:text-xs lg:text-base font-medium hover:text-gray-400 cursor-pointer uppercase tracking-tight sm:tracking-wide whitespace-nowrap">
+          <span onClick={() => navigate("/registro") } className="text-[10px] sm:text-xs lg:text-base font-medium hover:text-gray-400 cursor-pointer uppercase tracking-tight sm:tracking-wide whitespace-nowrap shrink-0">
             Registrarse
           </span>
-          <span onClick={() => navigate("/sobre-nosotros") } className="text-[10px] sm:text-xs lg:text-base font-medium hover:text-gray-400 cursor-pointer uppercase tracking-tight sm:tracking-wide whitespace-nowrap">
+          <span onClick={() => navigate("/sobre-nosotros") } className="text-[10px] sm:text-xs lg:text-base font-medium hover:text-gray-400 cursor-pointer uppercase tracking-tight sm:tracking-wide whitespace-nowrap shrink-0">
             Sobre Nosotros
           </span>
         </div>

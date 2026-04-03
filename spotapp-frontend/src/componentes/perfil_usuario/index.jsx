@@ -174,9 +174,8 @@ function LastRatedPlaces({ user, cardsToShow, cardWidth }) {
 
 export default function PerfilUsuario({ user: propUser, onClose, onNavigateToPlace }){
   const { user: ctxUser, setUser } = useUser();
-  const user = propUser || ctxUser || {};
-
   const isOwnProfile = !propUser || (ctxUser && propUser.id === ctxUser.id);
+  const user = isOwnProfile ? (ctxUser || propUser || {}) : (propUser || {});
 
   const API_URL_PROF = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const [ubicacionModalOpen, setUbicacionModalOpen] = useState(false);

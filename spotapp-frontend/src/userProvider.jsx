@@ -22,11 +22,15 @@ export const UserProvider = ({ children }) => {
   }, [user]);
 
   // Cargar ubicación desde la BD cuando el usuario inicia sesión
-  const fetchedUbicacionRef = useRef(false);
+  // (por usuario, no solo una vez por sesión de app)
+  const fetchedUbicacionUserIdRef = useRef(null);
   useEffect(() => {
-    if (!user) return;
-    // Evita repetir la petición si ya se hizo
-    if (fetchedUbicacionRef.current) return;
+    if (!user?.id) {
+      fetchedUbicacionUserIdRef.current = null;
+      return;
+    }
+    // Evita repetir la petición para el mismo usuario
+    if (fetchedUbicacionUserIdRef.current === user.id) return;
 
     const loadUbicacion = async () => {
       try {
@@ -34,19 +38,28 @@ export const UserProvider = ({ children }) => {
         if (!res.ok) return;
         const data = await res.json();
         // Si hay datos de ubicación, mezclar en el user global
-        if (data && (data.latitud || data.longitud || data.ubicacionLabel)) {
-          setUser((prev) => ({ ...prev, ubicacion: data.latitud && data.longitud ? `${data.latitud}, ${data.longitud}` : prev?.ubicacion, ubicacionLabel: data.ubicacionLabel ?? prev?.ubicacionLabel, lat: data.latitud ?? prev?.lat, lng: data.longitud ?? prev?.lng }));
+        if (data && (data.latitud != null || data.longitud != null || data.ubicacionLabel)) {
+          setUser((prev) => ({
+            ...prev,
+            ubicacion:
+              data.latitud != null && data.longitud != null
+                ? `${data.latitud}, ${data.longitud}`
+                : prev?.ubicacion,
+            ubicacionLabel: data.ubicacionLabel ?? prev?.ubicacionLabel,
+            lat: data.latitud ?? prev?.lat,
+            lng: data.longitud ?? prev?.lng,
+          }));
         }
       } catch (e) {
         // no bloquear la app si falla
         console.debug('No se pudo cargar la ubicación del usuario:', e);
       } finally {
-        fetchedUbicacionRef.current = true;
+        fetchedUbicacionUserIdRef.current = user.id;
       }
     };
 
     loadUbicacion();
-  }, [user]);
+  }, [user?.id]);
 
   return (
     <UserContext.Provider value={{ user, setUser }}>

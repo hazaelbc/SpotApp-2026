@@ -171,7 +171,13 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         body: JSON.stringify({ latitud, longitud, ubicacionLabel: labelToSave }),
       });
       if (response.ok) {
-        setUser({ ...user, ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`, ubicacionLabel: labelToSave, lat: latitud, lng: longitud });
+        setUser((prev) => ({
+          ...prev,
+          ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`,
+          ubicacionLabel: labelToSave,
+          lat: latitud,
+          lng: longitud,
+        }));
       } else {
         console.error('Error al actualizar la ubicación:', response.status);
       }
@@ -201,7 +207,13 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         body: JSON.stringify({ latitud, longitud, ubicacionLabel: labelToSave }),
       });
       if (response.ok) {
-        setUser({ ...user, ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`, ubicacionLabel: labelToSave, lat: latitud, lng: longitud });
+        setUser((prev) => ({
+          ...prev,
+          ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`,
+          ubicacionLabel: labelToSave,
+          lat: latitud,
+          lng: longitud,
+        }));
       } else {
         console.error('Error al actualizar la ubicación:', response.status);
       }
@@ -746,8 +758,8 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-t border-[var(--border-color)] flex-shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-t border-[var(--border-color)] flex-shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {isFirstTime && (
             <button
               onClick={() => setStep('choice')}
@@ -765,7 +777,7 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         </div>
         <button
           onClick={handleGuardarUbicacion}
-          className="px-5 py-2 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold hover:opacity-80 transition-opacity"
+          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold hover:opacity-80 transition-opacity"
         >
           Guardar ubicación
         </button>
@@ -844,8 +856,8 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-t border-[var(--border-color)] flex-shrink-0">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-3.5 border-t border-[var(--border-color)] flex-shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {isFirstTime && (
             <button
               onClick={() => setStep('choice')}
@@ -864,7 +876,7 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         <button
           onClick={handleGuardarCiudad}
           disabled={cityUbicacion.lat == null}
-          className="px-5 py-2 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold hover:opacity-80 transition-opacity disabled:opacity-40"
+          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold hover:opacity-80 transition-opacity disabled:opacity-40"
         >
           Guardar ubicación
         </button>
@@ -899,13 +911,13 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
 
       {modalVisible && createPortal(
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="flex flex-col w-full sm:w-[min(780px,92vw)] h-[70dvh] sm:h-[62vh] bg-[var(--bg-primary)] sm:rounded-2xl overflow-hidden shadow-2xl">
+          <div className="flex flex-col w-full sm:w-[min(780px,92vw)] h-[92dvh] sm:h-[62vh] bg-[var(--bg-primary)] rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl">
 
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)] flex-shrink-0">
-              <div>
-                <p className="text-base font-semibold text-[var(--text-primary)]">{currentHeader.title}</p>
-                <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{currentHeader.subtitle}</p>
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-[var(--border-color)] flex-shrink-0">
+              <div className="min-w-0 pr-2">
+                <p className="text-[15px] sm:text-base font-semibold text-[var(--text-primary)] truncate">{currentHeader.title}</p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-0.5 leading-snug line-clamp-2 sm:line-clamp-none">{currentHeader.subtitle}</p>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
                 {(step === 'exact-map' || step === 'city-search') && (

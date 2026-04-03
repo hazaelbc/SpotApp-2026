@@ -72,6 +72,34 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
 /* Transiciones suaves para todos los elementos que usan las variables */
 * {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;

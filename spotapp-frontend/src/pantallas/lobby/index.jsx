@@ -12,9 +12,8 @@ import TarjetaUbicacionIndividual from "../../componentes/tarjetas_ubicacion";
 import AdSenseBanner from "../../componentes/adsense-banner";
 import BarraHerramientasMovil from "../../componentes/barra_herramientas_movil";
 import { useUser } from "../../userProvider";
-import { FiBell, FiHome, FiCompass, FiSettings, FiTrendingUp, FiMap, FiFilter, FiMail } from "react-icons/fi";
+import { FiBell, FiHome, FiCompass, FiSettings, FiTrendingUp, FiMap, FiMail } from "react-icons/fi";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import DropdownFiltrarPor from "../../componentes/filtrar_por_dropdown";
 import PerfilTarjetaUbicacion from "../../componentes/perfil_tarjeta_ubicacion";
 import PerfilUsuario from "../../componentes/perfil_usuario";
 import SavedList from "../../componentes/saved_list";
@@ -34,6 +33,14 @@ export const Lobby = ({ children }) => {
     if (!user?.id) return false;
     return !localStorage.getItem(`spotapp_onboarding_done_${user.id}`);
   });
+
+  useEffect(() => {
+    if (!user?.id) {
+      setShowOnboarding(false);
+      return;
+    }
+    setShowOnboarding(!localStorage.getItem(`spotapp_onboarding_done_${user.id}`));
+  }, [user?.id]);
 
   const [location, setLocation] = useState('');
   const [draftLocation, setDraftLocation] = useState('');
@@ -139,6 +146,39 @@ export const Lobby = ({ children }) => {
     resetCreateForm();
   };
 
+  const handleLogout = () => {
+    try { localStorage.removeItem('user'); } catch (e) {}
+    try { localStorage.removeItem('authToken'); } catch (e) {}
+    try { setUser && setUser(null); } catch (e) {}
+    try { setViewMode && setViewMode('all'); } catch (e) {}
+    try {
+      navigate('/', { replace: true });
+    } catch (e) {
+      try { window.location.href = '/'; } catch (_) {}
+    }
+  };
+
+  const isZeroCoordinateString = (value) => {
+    if (!value || typeof value !== 'string') return false;
+    const match = value.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (!match) return false;
+    const lat = Number(match[1]);
+    const lng = Number(match[2]);
+    return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) < 1e-9 && Math.abs(lng) < 1e-9;
+  };
+
+  const locationDisplayLabel = (() => {
+    const candidates = [user?.ubicacionLabel, user?.ubicacion, location];
+    for (const c of candidates) {
+      if (!c) continue;
+      const label = String(c).trim();
+      if (!label) continue;
+      if (isZeroCoordinateString(label)) continue;
+      return label;
+    }
+    return '';
+  })();
+
   const handleCreatePlace = async () => {
     if (isSubmittingPlace) return;
     setIsSubmittingPlace(true);
@@ -186,7 +226,7 @@ export const Lobby = ({ children }) => {
   useEffect(() => {
     try {
       const stored = localStorage.getItem('spotapp_location');
-      if (stored) {
+      if (stored && !isZeroCoordinateString(stored)) {
         setLocation(stored);
         setDraftLocation(stored);
       }
@@ -326,9 +366,12 @@ export const Lobby = ({ children }) => {
   return (
     <>
     {showOnboarding && (
-      <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+      <OnboardingWizard onComplete={() => {
+        try { if (user?.id) localStorage.setItem(`spotapp_onboarding_done_${user.id}`, '1'); } catch (e) {}
+        setShowOnboarding(false);
+      }} />
     )}
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen h-[100dvh]">
       {/* Header */}
       <div className="w-full px-4 transition-colors duration-200 flex-shrink-0">
           <div className="py-3 lg:py-2 border-b border-gray-200 dark:border-[var(--border-color)]">
@@ -365,7 +408,7 @@ export const Lobby = ({ children }) => {
                 </DropdownMenu.Trigger>
 
                 <DropdownMenu.Portal>
-                  <DropdownMenu.Content sideOffset={6} align="center" className="w-[420px] bg-white dark:bg-[var(--bg-primary)] rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden z-50 origin-top">
+                  <DropdownMenu.Content sideOffset={6} align="center" collisionPadding={12} className="w-[min(92vw,420px)] bg-white dark:bg-[var(--bg-primary)] rounded-lg shadow-lg ring-1 ring-black/5 overflow-hidden z-50 origin-top">
                     <div className="px-3 py-2 flex items-center justify-between border-b border-gray-100 dark:border-[var(--border-color)]">
                       <span className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">
                         Notificaciones {unreadCount > 0 && <span className="ml-1 text-xs text-[var(--text-tertiary)]">({unreadCount})</span>}
@@ -431,7 +474,7 @@ export const Lobby = ({ children }) => {
                 onClick={() => setIsLocationModalOpen(true)}
                 className="flex items-center gap-2 p-2 sm:p-2 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 aria-label="Seleccionar ubicación"
-                title={(user?.ubicacionLabel) || location || 'Click para seleccionar ubicación'}
+                title={locationDisplayLabel || 'Selecciona ubicación'}
               >
                 <FiMap className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
                 <div className="hidden lg:block flex-1 min-w-0 max-w-[260px]">
@@ -450,7 +493,7 @@ export const Lobby = ({ children }) => {
                     {(() => {
                       // Mostrar `ubicacionLabel` preferentemente; si no existe, usar
                       // `user.ubicacion` (lat, lng) antes de caer en la ubicación en localStorage.
-                      const label = user?.ubicacionLabel || user?.ubicacion || location;
+                      const label = locationDisplayLabel;
                       if (!label) {
                         return (
                           <span style={{
@@ -459,7 +502,7 @@ export const Lobby = ({ children }) => {
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap'
                           }}>
-                            Click para seleccionar ubicación
+                            Selecciona ubicación
                           </span>
                         );
                       }
@@ -518,12 +561,7 @@ export const Lobby = ({ children }) => {
                       <div className="p-2">
                         <DropdownMenu.Item asChild>
                           <button
-                            onClick={() => {
-                              try { localStorage.removeItem('user'); } catch (e) {}
-                              try { setUser && setUser(null); } catch (e) {}
-                              setViewMode && setViewMode('all');
-                              try { window.location.href = 'http://localhost:5173/'; } catch (e) { console.log('redirect failed', e); }
-                            }}
+                            onClick={handleLogout}
                             className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-50 rounded-md"
                           >
                             Cerrar sesión
@@ -539,14 +577,27 @@ export const Lobby = ({ children }) => {
 
           {/* Segunda línea: Barra de búsqueda en app mode + icono de filtrar */}
             <div className="lg:hidden mt-3 sticky top-12 z-20 px-4">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <BarraBusqueda onSearch={(q) => { setQuery(q); setViewMode((v) => v === 'friends' ? 'friends' : 'all'); setSelectedCard(null); }} placeholder="Buscar en la Lobby..." />
+            <BarraBusqueda onSearch={(q) => { setQuery(q); setViewMode((v) => v === 'friends' ? 'friends' : 'all'); setSelectedCard(null); }} placeholder="Buscar en la Lobby..." />
+            {!profileUser && (
+              <div className="mt-2 flex items-center gap-2">
+                <button
+                  aria-label="Explorar"
+                  onClick={() => { setViewMode('all'); setSelectedCard(null); }}
+                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${viewMode === 'all' ? 'bg-gray-200 text-gray-900 dark:bg-[var(--bg-tertiary)] dark:text-[var(--text-primary)]' : 'text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]'}`}
+                >
+                  <FiCompass className="w-4 h-4" style={{ strokeWidth: 1 }} />
+                  <span>Explorar</span>
+                </button>
+                <button
+                  aria-label="Tendencias"
+                  onClick={() => { setViewMode('trending'); setSelectedCard(null); }}
+                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${viewMode === 'trending' ? 'bg-gray-200 text-gray-900 dark:bg-[var(--bg-tertiary)] dark:text-[var(--text-primary)]' : 'text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]'}`}
+                >
+                  <FiTrendingUp className="w-4 h-4" style={{ strokeWidth: 1 }} />
+                  <span>Tendencias</span>
+                </button>
               </div>
-              <div className="flex-shrink-0">
-                <DropdownFiltrarPor compact onSelect={(v) => { console.log('Filtro seleccionado', v); setIsFiltersOpen(false); }} />
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -616,55 +667,6 @@ export const Lobby = ({ children }) => {
               </div>
             </div>
 
-            {/* Mini-header (inside same sticky container) */}
-            <div className="px-4">
-              <div className="flex flex-nowrap sm:flex-wrap gap-2 sm:gap-6 justify-start sm:justify-center items-center h-8 overflow-hidden border-t border-[var(--border-color)]">
-                <button
-                  onClick={() => setIsFiltersOpen(true)}
-                  className="sm:hidden flex items-center gap-2 px-2 py-1 text-xs font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg"
-                  aria-label="Filtros"
-                >
-                  <FiFilter className="w-4 h-4" style={{ strokeWidth: 1 }} />
-                  <span>Filtros</span>
-                </button>
-                {[
-                  {
-                    label: "Parques",
-                    icon: (
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 align-middle" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2C7.03 2 2.5 6.03 2.5 11c0 4.97 4.53 9 9.5 9s9.5-4.03 9.5-9c0-4.97-4.53-9-9.5-9zm0 2c3.87 0 7 3.13 7 7 0 3.87-3.13 7-7 7s-7-3.13-7-7c0-3.87 3.13-7 7-7zm0 3a4 4 0 100 8 4 4 0 000-8z"/></svg>
-                    )
-                  },
-                  {
-                    label: "Restaurantes",
-                    icon: (
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 align-middle" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 21v-2a4 4 0 014-4h8a4 4 0 014 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    )
-                  },
-                  {
-                    label: "Cafés",
-                    icon: (
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 align-middle" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14"/><path d="M7 10h10M7 14h10"/></svg>
-                    )
-                  },
-                  {
-                    label: "Museos",
-                    icon: (
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 21V7a4 4 0 018 0v14"/><path d="M8 21h8"/></svg>
-                    )
-                  }
-                ].map((cat, idx, arr) => (
-                  <React.Fragment key={cat.label}>
-                    <button aria-label={`Filtrar por ${cat.label}`} className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-4 text-xs sm:text-sm font-medium text-gray-700 dark:text-[var(--text-primary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 bg-transparent min-w-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
-                      {cat.icon}
-                      <span className="truncate whitespace-nowrap min-w-0">{cat.label}</span>
-                    </button>
-                    {idx < arr.length - 1 && (
-                      <div className="h-6 w-px bg-gray-300 dark:bg-[var(--border-color)]"></div>
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
             {/* Línea divisoria final */}
             <div className="px-4">
               <div className="border-b border-[var(--border-color)]"></div>
@@ -708,22 +710,16 @@ export const Lobby = ({ children }) => {
       {/* Sidebar removed - replaced by mobile navigation bar */}
 
       {/* Messages Drawer (mobile) */}
-      <div className={`fixed inset-y-0 right-0 z-50 w-80 transform bg-white dark:bg-[var(--bg-primary)] shadow-lg transition-transform duration-200 ${isMessagesOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="p-4 h-full overflow-y-auto">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Mensajes</h3>
-            <button onClick={() => setIsMessagesOpen(false)} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]">Cerrar</button>
-          </div>
-          <BarraMensajes />
+      <div className={`fixed inset-y-0 right-0 z-50 w-full sm:w-[min(92vw,20rem)] h-[100dvh] transform bg-white dark:bg-[var(--bg-primary)] shadow-lg transition-transform duration-200 ${isMessagesOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="h-full overflow-hidden">
+          <BarraMensajes mobile onRequestClose={() => setIsMessagesOpen(false)} />
         </div>
       </div>
 
-      {/* Settings now provided as a compact dropdown (see header) */}
-
       {/* Filters Modal (mobile) */}
-      <div className={`${isFiltersOpen ? 'fixed inset-0 z-50 flex items-center justify-center' : 'hidden'}`}>
+      <div className={`${isFiltersOpen ? 'fixed inset-0 z-50 flex items-end sm:items-center justify-center' : 'hidden'}`}>
         <div className="fixed inset-0 bg-black/50" onClick={() => setIsFiltersOpen(false)}></div>
-        <div className="relative z-60 w-full max-w-sm mx-4 bg-white dark:bg-[var(--bg-primary)] rounded-lg shadow-lg overflow-hidden">
+        <div className="relative z-60 w-full sm:max-w-sm mx-0 sm:mx-4 bg-white dark:bg-[var(--bg-primary)] rounded-t-2xl sm:rounded-lg shadow-lg overflow-hidden pb-[env(safe-area-inset-bottom,0px)]">
           <div className="p-4 border-b border-gray-200 dark:border-[var(--border-color)] flex items-center justify-between">
             <h4 className="text-sm font-medium text-gray-900 dark:text-[var(--text-primary)]">Filtros</h4>
             <button onClick={() => setIsFiltersOpen(false)} className="p-1.5 rounded-md hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)]">Cerrar</button>
@@ -741,12 +737,12 @@ export const Lobby = ({ children }) => {
         onSaveLocation={undefined}
       />
       {/* ── Wizard: Crear lugar ── */}
-      <div className={`${isCreateModalOpen ? 'fixed inset-0 z-50 flex items-center justify-center' : 'hidden'}`}>
+      <div className={`${isCreateModalOpen ? 'fixed inset-0 z-[60] flex items-end sm:items-center justify-center' : 'hidden'}`}>
         {/* Backdrop */}
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md" onClick={closeCreateModal} />
 
         {/* Modal */}
-        <div className="relative z-60 w-full max-w-xl mx-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-[0_24px_64px_var(--shadow-color)] overflow-hidden flex flex-col">
+        <div className="relative z-60 w-full sm:max-w-xl mx-0 sm:mx-4 max-h-[95dvh] sm:max-h-[90dvh] bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-t-2xl sm:rounded-xl shadow-[0_24px_64px_var(--shadow-color)] overflow-hidden flex flex-col pb-[env(safe-area-inset-bottom,0px)]">
 
           {/* Header */}
           <div className="px-6 py-4 flex items-center justify-between flex-shrink-0">
@@ -790,7 +786,7 @@ export const Lobby = ({ children }) => {
 
           {/* ── Paso 1: Info ── */}
           {createWizardStep === 1 && (
-            <div className="px-6 py-6 flex flex-col gap-5">
+            <div className="px-4 sm:px-6 py-4 sm:py-6 flex flex-col gap-5 flex-1 min-h-0 overflow-y-auto">
 
               {/* Nombre */}
               <div className="flex flex-col gap-2">
@@ -1049,7 +1045,7 @@ export const Lobby = ({ children }) => {
               </div>
 
               {/* Mapa */}
-              <div ref={placeMapRef} className="h-[280px] w-full" />
+              <div ref={placeMapRef} className="h-[280px] w-full touch-none" />
 
               {/* Hint */}
               <div className="mx-5 h-px bg-[var(--border-color)]" />
@@ -1096,11 +1092,23 @@ export const Lobby = ({ children }) => {
 
       {/* Mobile navigation bar (fixed, visible only on mobile) */}
       <BarraHerramientasMovil
-        onExplore={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        onSaved={() => { setViewMode('saved'); setSelectedCard(null); }}
-        onCreate={() => setIsFiltersOpen(true)}
+        className={isCreateModalOpen || isMessagesOpen ? 'hidden' : ''}
+        onHome={() => {
+          setViewMode('all');
+          setSelectedCard(null);
+          setProfileUser(null);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        onFavorites={() => { setViewMode('favorites'); setSelectedCard(null); setProfileUser(null); }}
+        onCreate={() => {
+          setIsFiltersOpen(false);
+          setIsCreateModalOpen(true);
+        }}
+        onSaved={() => { setViewMode('saved'); setSelectedCard(null); setProfileUser(null); }}
+        onCollections={() => { setViewMode('collections'); setSelectedCard(null); setProfileUser(null); }}
+        onFriends={() => { setViewMode('friends'); setSelectedCard(null); setProfileUser(null); }}
         onProfile={() => setProfileUser(user)}
-        onSettings={() => {}}
+        onLogout={handleLogout}
       />
       {/* Floating Add Button (movible) */}
     </div>

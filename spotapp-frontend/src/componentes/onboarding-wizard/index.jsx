@@ -218,7 +218,7 @@ export default function OnboardingWizard({ onComplete }) {
 
       if (Object.keys(body).length > 0) {
         const res = await fetch(`${API_URL}/users/${user.id}`, {
-          method: "PATCH",
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
@@ -228,7 +228,7 @@ export default function OnboardingWizard({ onComplete }) {
       }
 
       localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
-      onComplete();
+      onComplete?.();
     } catch (e) {
       console.error("[Onboarding]", e);
     } finally {
@@ -238,7 +238,7 @@ export default function OnboardingWizard({ onComplete }) {
 
   const handleSkip = () => {
     localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
-    onComplete();
+    onComplete?.();
   };
 
   return (

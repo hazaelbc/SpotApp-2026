@@ -147,23 +147,23 @@ const Registro = ({ onSubmit }) => {
     <>
     <Header_Login />
     <div 
-      className="relative flex justify-center sm:justify-end items-center min-h-screen pt-16 px-4 sm:pr-8 lg:pr-16 xl:pr-24 bg-cover bg-center bg-no-repeat"
+      className="relative flex justify-center sm:justify-end items-start sm:items-center min-h-screen pt-20 sm:pt-16 pb-4 sm:pb-0 px-4 sm:pr-8 lg:pr-16 xl:pr-24 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: "url('/bg_login.webp')" }}
     >
       {/* Overlay con opacidad y desenfoque */}
       <div className="absolute inset-0 bg-black bg-opacity-40 backdrop-blur-sm"></div>
       
       {/* Formulario sobre el overlay */}
-      <div className="relative z-10 w-full max-w-lg p-8 bg-opacity-90 rounded-lg shadow-lg text-center" style={{ backgroundColor: 'white' }}>
-        <h2 className="text-3xl font-semibold text-gray-600 mb-8">Regístrate en SpotApp</h2>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <div className="relative z-10 w-full max-w-lg max-h-[calc(100dvh-6rem)] overflow-y-auto p-5 sm:p-8 bg-opacity-90 rounded-xl shadow-lg text-center" style={{ backgroundColor: 'white' }}>
+        <h2 className="text-2xl sm:text-3xl font-semibold text-gray-600 mb-6 sm:mb-8">Regístrate en SpotApp</h2>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 sm:gap-5">
         <div>
           <input
             type="text"
             placeholder="Nombre completo"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
-            className="w-full mx-auto px-4 py-3 border border-gray-300 rounded text-lg"
+            className="w-full mx-auto px-4 py-3 border border-gray-300 rounded text-base sm:text-lg bg-white text-gray-900 placeholder:text-gray-500"
           />
           {nombreError && <p className="text-red-600 text-xs mt-1 text-left">{nombreError}</p>}
         </div>
@@ -174,7 +174,7 @@ const Registro = ({ onSubmit }) => {
             placeholder="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full mx-auto px-4 py-3 border border-gray-300 rounded text-lg"
+            className="w-full mx-auto px-4 py-3 border border-gray-300 rounded text-base sm:text-lg bg-white text-gray-900 placeholder:text-gray-500"
           />
           {emailError && <p className="text-red-600 text-xs mt-1 text-left">{emailError}</p>}
         </div>
@@ -185,7 +185,7 @@ const Registro = ({ onSubmit }) => {
             placeholder="Contraseña"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full mx-auto px-4 py-3 border border-gray-300 rounded text-lg"
+            className="w-full mx-auto px-4 py-3 border border-gray-300 rounded text-base sm:text-lg bg-white text-gray-900 placeholder:text-gray-500"
           />
           {passwordError && <p className="text-red-600 text-xs mt-1 text-left">{passwordError}</p>}
         </div>
@@ -209,7 +209,7 @@ const Registro = ({ onSubmit }) => {
 
         <button 
           type="submit"
-          className="w-full mx-auto px-4 py-3 bg-green-700 text-white rounded-3xl text-lg cursor-pointer transition-all duration-300 hover:bg-green-800 hover:scale-[1.02] hover:shadow-lg"
+          className="w-full mx-auto px-4 py-3 bg-green-700 text-white rounded-3xl text-base sm:text-lg cursor-pointer transition-all duration-300 hover:bg-green-800 hover:scale-[1.02] hover:shadow-lg"
         >
           Siguiente
         </button>
@@ -225,7 +225,7 @@ const Registro = ({ onSubmit }) => {
         <button 
           type="button"
           onClick={handleGoogleSignup}
-          className="w-full mx-auto px-4 py-3 text-gray-600 rounded-3xl text-lg cursor-pointer border border-gray-300 transition-all duration-300 hover:bg-gray-50 hover:border-gray-400 hover:scale-[1.02] hover:shadow-lg flex items-center justify-center gap-3"
+          className="w-full mx-auto px-4 py-3 text-gray-600 rounded-3xl text-base sm:text-lg cursor-pointer border border-gray-300 transition-all duration-300 hover:bg-gray-50 hover:border-gray-400 hover:scale-[1.02] hover:shadow-lg flex items-center justify-center gap-3"
           style={{ backgroundColor: 'white' }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
