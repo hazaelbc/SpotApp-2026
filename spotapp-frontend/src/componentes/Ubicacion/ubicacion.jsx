@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from 'react-dom';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { FaUtensils, FaCoffee, FaShoppingCart, FaBeer, FaStore } from 'react-icons/fa';
+import { FaLocationArrow } from 'react-icons/fa';
+import { FiEdit, FiSliders } from 'react-icons/fi';
 import { useUser } from "../../userProvider";
 import { LuMap } from "react-icons/lu";
 import L from "leaflet";
@@ -64,30 +64,56 @@ const estadosNorte = [
   ];
 
 const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSaveLocation: controlledOnSave, ignoreUserInitial = false } = {}) => {
-  const { user, setUser } = useUser(); // Accede al usuario desde el contexto
-  const [ubicacion, setUbicacion] = useState(ignoreUserInitial ? "00" : (user?.ubicacion || "00")); // Estado local para manejar la ubicación
-  const [internalModalVisible, setInternalModalVisible] = useState(false); // Estado interno
-  // Si el padre pasa isOpen, usamos ese valor (modo controlado); si no, usamos el estado interno
+  const { user, setUser } = useUser();
+  const [ubicacion, setUbicacion] = useState(ignoreUserInitial ? "00" : (user?.ubicacion || "00"));
+  const [internalModalVisible, setInternalModalVisible] = useState(false);
   const modalVisible = controlledIsOpen !== undefined ? controlledIsOpen : internalModalVisible;
-  const [pantalla, setPantalla] = useState(1); // Controla la pantalla del modal
+
+  // step: 'choice' | 'exact-map' | 'city-search'
+  // First-time users start at 'choice'. Returning users go to their previously chosen mode.
+  const isFirstTime = !user?.ubicacionLabel && !user?.lat;
+  const [step, setStep] = useState(isFirstTime ? 'choice' : 'exact-map');
+
   const [estadoSeleccionado, setEstadoSeleccionado] = useState("");
   const [ciudadSeleccionada, setCiudadSeleccionada] = useState("");
   const [paisSeleccionado, setPaisSeleccionado] = useState('Mexico');
   const [ubicacionLabel, setUbicacionLabel] = useState(user?.ubicacionLabel || '');
-  const [map, setMap] = useState(null); // Estado para el mapa
-  const [marker, setMarker] = useState(null); // Estado para el marcador
+  const [map, setMap] = useState(null);
+  const [marker, setMarker] = useState(null);
   const tileLayerRef = useRef({ light: null, dark: null, current: null });
   const [mensaje, setMensaje] = useState("");
-  const [noPOI, setNoPOI] = useState(false);
   const { isDark } = useTheme();
   const [loadingPosition, setLoadingPosition] = useState(false);
-  
+
+  // City-search step state
+  const [cityQuery, setCityQuery] = useState('');
+  const [cityResults, setCityResults] = useState([]);
+  const [citySearchLoading, setCitySearchLoading] = useState(false);
+  const [cityMap, setCityMap] = useState(null);
+  const [cityMarker, setCityMarker] = useState(null);
+  const cityTileLayerRef = useRef({ light: null, dark: null, current: null });
+  const [cityUbicacion, setCityUbicacion] = useState({ lat: null, lng: null });
+  const [cityLabel, setCityLabel] = useState('');
+  const [mapMenuOpen, setMapMenuOpen] = useState(false);
+  const mapMenuBtnRef = useRef(null);
+
+  // Reset step when modal opens/closes
+  useEffect(() => {
+    if (modalVisible) {
+      setStep(isFirstTime ? 'choice' : 'exact-map');
+      setCityQuery('');
+      setCityResults([]);
+      setCityUbicacion({ lat: null, lng: null });
+      setCityLabel('');
+    }
+  }, [modalVisible, isFirstTime]);
 
   const handleAbrirModal = () => {
     setInternalModalVisible(true);
-    setPantalla(1);
+    setStep(isFirstTime ? 'choice' : 'exact-map');
     document.body.style.overflow = "hidden";
   };
+
   const resetLeafletContainer = (id) => {
     const container = document.getElementById(id);
     if (container && container._leaflet_id) {
@@ -100,7 +126,12 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
       map.remove();
       setMap(null);
     }
+    if (cityMap) {
+      cityMap.remove();
+      setCityMap(null);
+    }
     resetLeafletContainer("map-ubicacion");
+    resetLeafletContainer("map-city-search");
     document.body.style.overflow = "";
     if (controlledOnClose) {
       controlledOnClose();
@@ -108,9 +139,8 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
       setInternalModalVisible(false);
     }
   };
-// punto de retorno
+
   const handleGuardarUbicacion = async () => {
-    // Use marker position if available, otherwise fall back to ubicacion text
     let latitud;
     let longitud;
     if (marker && typeof marker.getLatLng === 'function') {
@@ -120,14 +150,13 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
     } else {
       const coordRegex = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
       if (!coordRegex.test(ubicacion)) {
-        alert('No se ha seleccionado una ubicación. Usa "Usar mi ubicación" o mueve el marcador en el mapa.');
+        alert('No se ha seleccionado una ubicación. Mueve el marcador en el mapa.');
         return;
       }
       [latitud, longitud] = ubicacion.split(',').map(Number);
     }
 
     try {
-      // If parent provided an onSaveLocation callback, call it and do NOT update user
       const built = await reverseGeocodeAndFill(latitud, longitud).catch(() => '');
       const labelToSave = built || ubicacionLabel || '';
       if (typeof controlledOnSave === 'function') {
@@ -136,14 +165,13 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         return;
       }
 
-      // Default behaviour: save location to user via API
       const response = await fetch(`${API_URL}/user-ubicacion/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ latitud, longitud, ubicacionLabel: labelToSave }),
       });
       if (response.ok) {
-        setUser({ ...user, ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`, ubicacionLabel: labelToSave });
+        setUser({ ...user, ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`, ubicacionLabel: labelToSave, lat: latitud, lng: longitud });
       } else {
         console.error('Error al actualizar la ubicación:', response.status);
       }
@@ -152,283 +180,220 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
     handleCerrarModal();
   };
 
-  const handleSiguientePantalla = () => {
-    if (estadoSeleccionado && ciudadSeleccionada) {
-      const estado = estadosNorte.find((estado) => estado.nombre === estadoSeleccionado);
-      const ciudad = estado.ciudades.find((ciudad) => ciudad.nombre === ciudadSeleccionada);
-  
-      if (ciudad && ciudad.coordenadas) {
-        setPantalla(2); // Cambia a la pantalla del mapa
-        setUbicacion(`${ciudad.coordenadas[0]}, ${ciudad.coordenadas[1]}`); // Actualiza la ubicación
-      } else {
-        alert("No se encontraron coordenadas para la ciudad seleccionada.");
-      }
-    } else {
-      alert("Por favor selecciona un estado y una ciudad.");
+  const handleGuardarCiudad = async () => {
+    if (cityUbicacion.lat == null || cityUbicacion.lng == null) {
+      alert('Por favor busca y selecciona una ciudad primero.');
+      return;
     }
+    const { lat: latitud, lng: longitud } = cityUbicacion;
+    const labelToSave = cityLabel || '';
+
+    try {
+      if (typeof controlledOnSave === 'function') {
+        try { controlledOnSave({ latitud, longitud, ubicacionLabel: labelToSave }); } catch (e) { console.error('onSaveLocation callback error', e); }
+        handleCerrarModal();
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/user-ubicacion/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitud, longitud, ubicacionLabel: labelToSave }),
+      });
+      if (response.ok) {
+        setUser({ ...user, ubicacion: `${latitud.toFixed(6)}, ${longitud.toFixed(6)}`, ubicacionLabel: labelToSave, lat: latitud, lng: longitud });
+      } else {
+        console.error('Error al actualizar la ubicación:', response.status);
+      }
+    } catch (err) { console.error('Network error', err); }
+
+    handleCerrarModal();
   };
-  
-  useEffect(() => {
-    if (modalVisible) {
-      const container = document.getElementById("map-ubicacion");
 
-      // Limpia el contenedor si ya tiene un mapa asociado
-      if (container._leaflet_id) {
-        container._leaflet_id = null;
-      }
-
-      // Verifica que la ubicación sea válida; si no, usa coords por defecto para centrar el mapa
-      const coordRegex = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
-      let lat;
-      let lng;
-      if (coordRegex.test(ubicacion)) {
-        [lat, lng] = ubicacion.split(",").map(Number);
-      } else {
-        // no setear el estado global aquí — solo usar coordenadas por defecto para inicializar el mapa
-        lat = 19.432608;
-        lng = -99.133209;
-      }
-
-      // Inicializa el mapa
-      const mapInstance = L.map("map-ubicacion", {
-        zoomControl: false,
-        attributionControl: false,
-        zoomSnap: 0.25,
-        zoomDelta: 0.5,
-        wheelPxPerZoomLevel: 120,
-      }).setView([lat, lng], 13);
-
-      // Create both dark and light tile layers, but add only the one matching app theme
-      // Use a less-ink, more gray dark tiles (Stadia Alidade Smooth Dark)
-      const darkTiles = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap contributors',
-        maxZoom: 19
-      });
-
-      const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
-      });
-
-      // store tile layers for later swapping
-      tileLayerRef.current.dark = darkTiles;
-      tileLayerRef.current.light = lightTiles;
-
-      // add initial tile layer according to theme
-      if (isDark) {
-        darkTiles.addTo(mapInstance);
-        tileLayerRef.current.current = darkTiles;
-      } else {
-        lightTiles.addTo(mapInstance);
-        tileLayerRef.current.current = lightTiles;
-      }
-
-      // Add default zoom control (positioned top left to make room for custom controls)
-      L.control.zoom({ position: 'topleft' }).addTo(mapInstance);
-
-      // Scale control (bottom left)
-      L.control.scale({ position: 'bottomleft' }).addTo(mapInstance);
-
-      // Fullscreen and locate custom controls
-      const FullscreenControl = L.Control.extend({
-        onAdd: function(map) {
-          const btn = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
-          btn.title = 'Toggle fullscreen';
-          btn.innerHTML = '&#x26F6;';
-          L.DomEvent.on(btn, 'click', function(e){ L.DomEvent.stopPropagation(e); toggleMapFullscreen(); });
-          L.DomEvent.disableClickPropagation(btn);
-          return btn;
-        }
-      });
-      new FullscreenControl({ position: 'topright' }).addTo(mapInstance);
-
-      const LocateControl = L.Control.extend({
-        onAdd: function(map) {
-          const btn = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
-          btn.title = 'Centrar en mi ubicación';
-          btn.innerHTML = '&#x1F4CD;';
-          L.DomEvent.on(btn, 'click', function(e){ L.DomEvent.stopPropagation(e); handleUseMyLocation(); });
-          L.DomEvent.disableClickPropagation(btn);
-          return btn;
-        }
-      });
-      new LocateControl({ position: 'topright' }).addTo(mapInstance);
-
-      // (map style toggle removed to simplify modal - user requested minimal options)
-
-      // create custom DivIcon for marker (uses user photo if available)
-      // sanitize user image: avoid external placeholder hosts that may fail in offline/dev
-      let userImg = '/fp_default.webp';
-      try {
-        const raw = (typeof user !== 'undefined' && user?.fotoPerfil) ? user.fotoPerfil : '';
-        if (raw && typeof raw === 'string' && !/placeholder\.com/i.test(raw)) {
-          userImg = raw;
-        }
-      } catch (e) { userImg = '/fp_default.webp'; }
-      const userName = (typeof user !== 'undefined' && user?.nombre) ? user.nombre : 'Yo';
-      const html = `<div class="div-marker"><div class="avatar"><img src="${userImg}" alt="marker"/></div><div class="marker-tip"></div></div>`;
-      const divIcon = L.divIcon({ html, className: 'custom-div-icon', iconSize: [48, 56], iconAnchor: [24, 56] });
-
-      // Crea o actualiza el marcador
-      const newMarker = L.marker([lat, lng], { draggable: true, icon: divIcon }).addTo(mapInstance);
-      setMarker(newMarker);
-
-      // Escucha el evento de arrastre del marcador
-      newMarker.on("dragend", async (e) => {
-        const { lat, lng } = e.target.getLatLng();
-        const latn = lat.toFixed(6);
-        const lngn = lng.toFixed(6);
-        setUbicacion(`${latn}, ${lngn}`); // Actualiza la ubicación con las coordenadas precisas
-        await reverseGeocodeAndFill(lat, lng);
-      });
-
-      // Escucha clics en el mapa para mover el marcador
-      mapInstance.on("click", async (e) => {
-        const { lat, lng } = e.latlng;
-        newMarker.setLatLng([lat, lng]); // Mueve el marcador al lugar clicado
-        setUbicacion(`${lat.toFixed(6)}, ${lng.toFixed(6)}`); // Actualiza la ubicación
-        await reverseGeocodeAndFill(lat, lng);
-      });
-
-      // helper to toggle fullscreen style on the map container
-      function toggleMapFullscreen(){
-        const el = document.getElementById('map-ubicacion');
-        if(!el) return;
-        if(el.classList.contains('fullscreen')){
-          el.classList.remove('fullscreen');
-        } else {
-          el.classList.add('fullscreen');
-        }
-        setTimeout(() => { try { mapInstance.invalidateSize(); } catch(e){} }, 200);
-      }
-
-      setMap(mapInstance);
-
-      // Fetch POIs from backend (proxy to Overpass) for current viewport
-      async function fetchPOIs() {
-        try {
-          setNoPOI(false);
-          const b = mapInstance.getBounds();
-          const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
-          // call backend endpoint which proxies Overpass for security and CORS
-          // request default categories: restaurant,cafe,supermarket
-          const res = await fetch(`${API_URL}/places?bbox=${encodeURIComponent(bbox)}&categories=restaurant,cafe,supermarket`);
-          if (!res.ok) {
-            console.log('places fetch status', res.status);
-            setNoPOI(true);
-            return;
-          }
-          const features = await res.json();
-          const featArray = Array.isArray(features) ? features : (features?.features || []);
-
-          // determine reference point for radius checks: marker position if present, otherwise map center
-          const ref = (marker && typeof marker.getLatLng === 'function') ? marker.getLatLng() : mapInstance.getCenter();
-          const refLat = ref.lat;
-          const refLng = ref.lng;
-
-          // haversine distance in kilometers
-          const haversineKm = (lat1, lon1, lat2, lon2) => {
-            const toRad = (v) => (v * Math.PI) / 180;
-            const R = 6371; // km
-            const dLat = toRad(lat2 - lat1);
-            const dLon = toRad(lon2 - lon1);
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-          };
-
-          // check if any feature lies within 2 km of reference point
-          let anyWithin2km = false;
-          for (const f of featArray) {
-            let latF = null;
-            let lonF = null;
-            if (f.geometry && Array.isArray(f.geometry.coordinates)) {
-              lonF = f.geometry.coordinates[0];
-              latF = f.geometry.coordinates[1];
-            } else if (f.lat && f.lon) {
-              latF = f.lat; lonF = f.lon;
-            } else if (f.center && f.center.lat && f.center.lon) {
-              latF = f.center.lat; lonF = f.center.lon;
-            }
-            if (latF != null && lonF != null) {
-              const d = haversineKm(refLat, refLng, latF, lonF);
-              if (d <= 2) { anyWithin2km = true; break; }
-            }
-          }
-
-          console.log('places response', res.status, featArray.length, 'anyWithin2km', anyWithin2km);
-          setNoPOI(!anyWithin2km);
-
-          // remove previous layer
-          if (mapInstance._poiLayer) mapInstance.removeLayer(mapInstance._poiLayer);
-          // helper: detect a simple category for styling
-          const detectCategory = (feature) => {
-            const tags = feature.properties?.tags || {};
-            if (tags.amenity === 'restaurant' || tags.cuisine) return 'restaurant';
-            if (tags.amenity === 'cafe') return 'cafe';
-            if (tags.shop === 'supermarket') return 'supermarket';
-            if (tags.amenity === 'bar') return 'bar';
-            if (tags.shop === 'convenience') return 'convenience';
-            return 'default';
-          };
-
-          const iconForCategory = (cat) => {
-            switch (cat) {
-              case 'restaurant': return { Icon: FaUtensils, color: '#E9573F' };
-              case 'cafe': return { Icon: FaCoffee, color: '#8B5CF6' };
-              case 'supermarket': return { Icon: FaShoppingCart, color: '#10B981' };
-              case 'bar': return { Icon: FaBeer, color: '#F59E0B' };
-              case 'convenience': return { Icon: FaStore, color: '#06B6D4' };
-              default: return { Icon: FaUtensils, color: 'var(--accent-green)' };
-            }
-          };
-
-          const makeDivIcon = (feature) => {
-            const cat = detectCategory(feature);
-            const { Icon, color } = iconForCategory(cat);
-            const svg = renderToStaticMarkup(React.createElement(Icon, { color, size: 18 }));
-            const html = `<div style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;color:${color}">${svg}</div>`;
-            return L.divIcon({ html, className: 'poi-div-icon', iconSize: [28, 28], iconAnchor: [14, 14] });
-          };
-
-          mapInstance._poiLayer = L.geoJSON(features, {
-            pointToLayer: (feature, latlng) => L.marker(latlng, { icon: makeDivIcon(feature) }),
-            onEachFeature: (feature, layer) => {
-              const name = feature.properties?.tags?.name || 'Lugar';
-              const info = Object.entries(feature.properties?.tags || {}).slice(0,5).map(([k,v]) => `${k}: ${v}`).join('<br/>');
-              layer.bindPopup(`<strong>${name}</strong><br/>${info}`);
-            }
-          }).addTo(mapInstance);
-        } catch (e) {
-          // ignore POI errors silently but mark state for the UI
-          console.error('fetchPOIs error', e);
-          setNoPOI(true);
-        }
-      }
-
-      // initial load and reload on moveend (debounced)
-      let moveTimer = null;
-      fetchPOIs();
-      mapInstance.on('moveend', () => {
-        if (moveTimer) clearTimeout(moveTimer);
-        moveTimer = setTimeout(() => { fetchPOIs(); }, 600);
-      });
-
-      // Asegúrate de que el mapa se renderice correctamente
+  // ── Exact-map: auto-geolocation on mount ──
+  const handleUseMyLocation = (mapInstance, markerInstance) => {
+    if (!navigator.geolocation) {
+      alert('Geolocation no está disponible en este navegador.');
+      return;
+    }
+    setLoadingPosition(true);
+    setMensaje('Obteniendo ubicación...');
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const coordStr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      setUbicacion(coordStr);
+      const mapRef = mapInstance || map;
+      const markerRef = markerInstance || marker;
       setTimeout(() => {
-        mapInstance.invalidateSize();
+        try {
+          if (mapRef) {
+            mapRef.setView([lat, lng], 15);
+            if (markerRef) {
+              markerRef.setLatLng([lat, lng]);
+            }
+          }
+        } catch (e) { /* ignore */ }
       }, 100);
+      await reverseGeocodeAndFill(lat, lng);
+      setLoadingPosition(false);
+      setMensaje('');
+    }, (err) => {
+      setLoadingPosition(false);
+      setMensaje('');
+      console.warn('No se pudo obtener la ubicación:', err.message || err.code);
+    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+  };
+
+  // ── Exact-map initialization ──
+  useEffect(() => {
+    if (!modalVisible || step !== 'exact-map') return;
+
+    const container = document.getElementById("map-ubicacion");
+    if (!container) return;
+    if (container._leaflet_id) {
+      container._leaflet_id = null;
     }
 
-    return () => {
-      if (map) {
-        map.remove();
-        setMap(null);
-      }
-    };
-  }, [modalVisible]);
+    const coordRegex = /^-?\d+(\.\d+)?,\s*-?\d+(\.\d+)?$/;
+    const hasSavedCoords = user?.lat && user?.lng && (user.lat !== 0 || user.lng !== 0);
+    let lat;
+    let lng;
+    if (coordRegex.test(ubicacion)) {
+      [lat, lng] = ubicacion.split(",").map(Number);
+    } else if (hasSavedCoords) {
+      lat = user.lat; lng = user.lng;
+    } else {
+      lat = 19.432608;
+      lng = -99.133209;
+    }
 
-  // Swap tile layer when app theme changes
+    const mapInstance = L.map("map-ubicacion", {
+      zoomControl: false,
+      attributionControl: false,
+      zoomSnap: 0.5,
+      zoomDelta: 1,
+      scrollWheelZoom: false,
+      minZoom: 10,
+    }).setView([lat, lng], 16);
+
+    // Asymmetric scroll zoom: zoom-in faster, zoom-out slower
+    mapInstance.getContainer().addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (e.deltaY < 0) mapInstance.zoomIn(0.7);
+      else mapInstance.zoomOut(0.35);
+    }, { passive: false });
+
+    const darkTiles = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap contributors',
+      maxZoom: 19
+    });
+    const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    });
+
+    tileLayerRef.current.dark = darkTiles;
+    tileLayerRef.current.light = lightTiles;
+
+    if (isDark) {
+      darkTiles.addTo(mapInstance);
+      tileLayerRef.current.current = darkTiles;
+    } else {
+      lightTiles.addTo(mapInstance);
+      tileLayerRef.current.current = lightTiles;
+    }
+
+    L.control.zoom({ position: 'topleft' }).addTo(mapInstance);
+    L.control.scale({ position: 'bottomleft' }).addTo(mapInstance);
+
+    const FullscreenControl = L.Control.extend({
+      onAdd: function() {
+        const btn = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
+        btn.title = 'Toggle fullscreen';
+        btn.innerHTML = '&#x26F6;';
+        L.DomEvent.on(btn, 'click', function(e){ L.DomEvent.stopPropagation(e); toggleMapFullscreen(); });
+        L.DomEvent.disableClickPropagation(btn);
+        return btn;
+      }
+    });
+    new FullscreenControl({ position: 'topright' }).addTo(mapInstance);
+
+    const LocateControl = L.Control.extend({
+      onAdd: function() {
+        const btn = L.DomUtil.create('button', 'leaflet-bar leaflet-control leaflet-control-custom');
+        btn.title = 'Centrar en mi ubicación';
+        btn.innerHTML = '&#x1F4CD;';
+        L.DomEvent.on(btn, 'click', function(e){ L.DomEvent.stopPropagation(e); handleUseMyLocation(mapInstance, newMarker); });
+        L.DomEvent.disableClickPropagation(btn);
+        return btn;
+      }
+    });
+    new LocateControl({ position: 'topright' }).addTo(mapInstance);
+
+    let userImg = '/fp_default.webp';
+    try {
+      const raw = (typeof user !== 'undefined' && user?.fotoPerfil) ? user.fotoPerfil : '';
+      if (raw && typeof raw === 'string' && !/placeholder\.com/i.test(raw)) {
+        userImg = raw;
+      }
+    } catch (e) { userImg = '/fp_default.webp'; }
+    const html = `<div class="div-marker"><div class="avatar"><img src="${userImg}" alt="marker"/></div><div class="marker-tip"></div></div>`;
+    const divIcon = L.divIcon({ html, className: 'custom-div-icon', iconSize: [48, 56], iconAnchor: [24, 56] });
+
+    const newMarker = L.marker([lat, lng], { draggable: true, icon: divIcon }).addTo(mapInstance);
+    setMarker(newMarker);
+
+    newMarker.on("dragend", async (e) => {
+      const { lat, lng } = e.target.getLatLng();
+      setUbicacion(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+      await reverseGeocodeAndFill(lat, lng);
+    });
+
+    mapInstance.on("click", async (e) => {
+      const { lat, lng } = e.latlng;
+      newMarker.setLatLng([lat, lng]);
+      setUbicacion(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+      await reverseGeocodeAndFill(lat, lng);
+    });
+
+    function toggleMapFullscreen(){
+      const el = document.getElementById('map-ubicacion');
+      if(!el) return;
+      if(el.classList.contains('fullscreen')){
+        el.classList.remove('fullscreen');
+      } else {
+        el.classList.add('fullscreen');
+      }
+      setTimeout(() => { try { mapInstance.invalidateSize(); } catch(e){} }, 200);
+    }
+
+    setMap(mapInstance);
+
+    setTimeout(() => { mapInstance.invalidateSize(); }, 100);
+
+    // Auto-trigger geolocation only for exact-mode users with no saved coords
+    const isCityMode = localStorage.getItem('spotapp_location_mode') === 'city';
+    const hasCoords = coordRegex.test(ubicacion) || hasSavedCoords;
+    if (!hasCoords && !isCityMode) {
+      handleUseMyLocation(mapInstance, newMarker);
+    }
+
+  }, [modalVisible, step]);
+
+  // Cleanup exact-map when step changes away or modal closes
+  useEffect(() => {
+    if (!modalVisible || step !== 'exact-map') {
+      if (map) {
+        try { map.remove(); } catch (e) { /* ignore */ }
+        setMap(null);
+        setMarker(null);
+        resetLeafletContainer("map-ubicacion");
+      }
+    }
+  }, [modalVisible, step]);
+
+  // Swap tile layer (exact-map) when theme changes
   useEffect(() => {
     if (!map || !tileLayerRef.current) return;
     const desired = isDark ? tileLayerRef.current.dark : tileLayerRef.current.light;
@@ -445,34 +410,129 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
       console.error('Error swapping tile layers by theme', e);
     }
   }, [isDark, map]);
-  
-  const encontrarEstadoYCiudad = (latitud, longitud) => {
-    const rad = (x) => (x * Math.PI) / 180; // Convierte grados a radianes
 
+  // ── City-search map initialization ──
+  useEffect(() => {
+    if (!modalVisible || step !== 'city-search') return;
+
+    const container = document.getElementById("map-city-search");
+    if (!container) return;
+    if (container._leaflet_id) {
+      container._leaflet_id = null;
+    }
+
+    // If user already has a saved location, center there; otherwise Mexico City
+    const hasSaved = user?.lat && user?.lng && (user.lat !== 0 || user.lng !== 0);
+    const initLat = hasSaved ? user.lat : 19.432608;
+    const initLng = hasSaved ? user.lng : -99.133209;
+
+    const mapInstance = L.map("map-city-search", {
+      zoomControl: true,
+      attributionControl: false,
+      zoomSnap: 0.5,
+      zoomDelta: 1,
+      scrollWheelZoom: false,
+      minZoom: 10,
+    }).setView([initLat, initLng], hasSaved ? 16 : 5);
+
+    // Asymmetric scroll zoom: zoom-in faster, zoom-out slower
+    mapInstance.getContainer().addEventListener('wheel', (e) => {
+      e.preventDefault();
+      if (e.deltaY < 0) mapInstance.zoomIn(0.7);
+      else mapInstance.zoomOut(0.35);
+    }, { passive: false });
+
+    const darkTiles = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap contributors',
+      maxZoom: 19
+    });
+    const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19
+    });
+
+    cityTileLayerRef.current.dark = darkTiles;
+    cityTileLayerRef.current.light = lightTiles;
+
+    if (isDark) {
+      darkTiles.addTo(mapInstance);
+      cityTileLayerRef.current.current = darkTiles;
+    } else {
+      lightTiles.addTo(mapInstance);
+      cityTileLayerRef.current.current = lightTiles;
+    }
+
+    L.control.scale({ position: 'bottomleft' }).addTo(mapInstance);
+
+    setTimeout(() => { mapInstance.invalidateSize(); }, 100);
+
+    setCityMap(mapInstance);
+
+    // Place marker at saved location if exists — same avatar icon as exact-map
+    if (hasSaved) {
+      let userImg = '/fp_default.webp';
+      try { const raw = user?.fotoPerfil || ''; if (raw && !/placeholder\.com/i.test(raw)) userImg = raw; } catch(e){}
+      const avatarHtml = `<div class="div-marker"><div class="avatar"><img src="${userImg}" alt="marker"/></div><div class="marker-tip"></div></div>`;
+      const avatarIcon = L.divIcon({ html: avatarHtml, className: 'custom-div-icon', iconSize: [48, 56], iconAnchor: [24, 56] });
+      const m = L.marker([initLat, initLng], { icon: avatarIcon }).addTo(mapInstance);
+      setCityMarker(m);
+      setCityUbicacion({ lat: initLat, lng: initLng });
+      setCityLabel(user?.ubicacionLabel || '');
+    } else {
+      setCityMarker(null);
+    }
+
+    return () => {
+      // cleanup handled by the step-change effect below
+    };
+  }, [modalVisible, step]);
+
+  // Cleanup city-search map when step changes away or modal closes
+  useEffect(() => {
+    if (!modalVisible || step !== 'city-search') {
+      if (cityMap) {
+        try { cityMap.remove(); } catch (e) { /* ignore */ }
+        setCityMap(null);
+        setCityMarker(null);
+        resetLeafletContainer("map-city-search");
+      }
+    }
+  }, [modalVisible, step]);
+
+  // Swap tile layer (city-search) when theme changes
+  useEffect(() => {
+    if (!cityMap || !cityTileLayerRef.current) return;
+    const desired = isDark ? cityTileLayerRef.current.dark : cityTileLayerRef.current.light;
+    if (!desired) return;
+    try {
+      const cur = cityTileLayerRef.current.current;
+      if (cur !== desired) {
+        if (cur) cityMap.removeLayer(cur);
+        desired.addTo(cityMap);
+        cityTileLayerRef.current.current = desired;
+        setTimeout(() => { try { cityMap.invalidateSize(); } catch(e){} }, 200);
+      }
+    } catch (e) {
+      console.error('Error swapping city tile layers by theme', e);
+    }
+  }, [isDark, cityMap]);
+
+  const encontrarEstadoYCiudad = (latitud, longitud) => {
+    const rad = (x) => (x * Math.PI) / 180;
     const calcularDistancia = (lat1, lon1, lat2, lon2) => {
-      const R = 6371; // Radio de la Tierra en kilómetros
+      const R = 6371;
       const dLat = rad(lat2 - lat1);
       const dLon = rad(lon2 - lon1);
-      const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      return R * c; // Distancia en kilómetros
+      return R * c;
     };
-
     let estadoCercano = "";
     let ciudadCercana = "";
     let distanciaMinima = Infinity;
-
     for (const estado of estadosNorte) {
       for (const ciudad of estado.ciudades) {
-        const distancia = calcularDistancia(
-          latitud,
-          longitud,
-          ciudad.coordenadas[0],
-          ciudad.coordenadas[1]
-        );
-
+        const distancia = calcularDistancia(latitud, longitud, ciudad.coordenadas[0], ciudad.coordenadas[1]);
         if (distancia < distanciaMinima) {
           distanciaMinima = distancia;
           estadoCercano = estado.nombre;
@@ -480,19 +540,12 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         }
       }
     }
-
-    if (distanciaMinima !== Infinity) {
-      return { estado: estadoCercano, ciudad: ciudadCercana };
-    }
-
-    return { estado: "", ciudad: "" }; // Si no se encuentra, devuelve valores vacíos
+    if (distanciaMinima !== Infinity) return { estado: estadoCercano, ciudad: ciudadCercana };
+    return { estado: "", ciudad: "" };
   };
 
   useEffect(() => {
-    // If parent requested ignoring user initial data or provided a controlled save callback,
-    // skip fetching/syncing the saved user location to avoid mutating user state.
     if (ignoreUserInitial || typeof controlledOnSave === 'function') return;
-
     const fetchUbicacion = async () => {
       try {
         const response = await fetch(`${API_URL}/user-ubicacion/${user.id}`);
@@ -500,10 +553,9 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
           const data = await response.json();
           if (data.latitud && data.longitud) {
             const { estado, ciudad } = encontrarEstadoYCiudad(data.latitud, data.longitud);
-            setUbicacion(`${data.latitud}, ${data.longitud}`); // Actualiza la ubicación
-            setEstadoSeleccionado(estado); // Actualiza el estado seleccionado
-            setCiudadSeleccionada(ciudad); // Actualiza la ciudad seleccionada
-            // set a compact label when possible
+            setUbicacion(`${data.latitud}, ${data.longitud}`);
+            setEstadoSeleccionado(estado);
+            setCiudadSeleccionada(ciudad);
             if (ciudad || estado) {
               const labelParts = [];
               if (ciudad) labelParts.push(ciudad);
@@ -511,7 +563,6 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
               labelParts.push('Mexico');
               setUbicacionLabel(labelParts.join(' < '));
             }
-            // if backend returns a stored compact label, use it (overrides the constructed one)
             if (data.ubicacionLabel) setUbicacionLabel(data.ubicacionLabel);
           }
         } else {
@@ -521,17 +572,15 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         console.error("Error de red al recuperar la ubicación:", error);
       }
     };
-
     fetchUbicacion();
   }, [user.id, ignoreUserInitial, controlledOnSave]);
 
-  // Reverse geocode using Nominatim to fill state/city from coords
   async function reverseGeocodeAndFill(lat, lng) {
     try {
       setMensaje('Buscando dirección...');
       const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
-      const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
-      if (!res.ok) return;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'es', 'User-Agent': 'SpotApp/1.0' } });
+      if (!res.ok) return '';
       const data = await res.json();
       const addr = data.address || {};
       const state = addr.state || addr.region || '';
@@ -540,7 +589,6 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
       if (state) setEstadoSeleccionado(state);
       if (city) setCiudadSeleccionada(city);
       if (country) setPaisSeleccionado(country);
-      // build compact label: City < State < Country
       if (city || state || country) {
         const labelParts = [];
         if (city) labelParts.push(city);
@@ -559,56 +607,257 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
     }
   }
 
-  // Use browser geolocation to get quick position, center map and reverse-geocode
-  const handleUseMyLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation no está disponible en este navegador.');
-      return;
+  // ── City search: Nominatim forward geocoding ──
+  const handleCitySearch = async () => {
+    if (!cityQuery.trim()) return;
+    setCitySearchLoading(true);
+    setCityResults([]);
+    try {
+      const encoded = encodeURIComponent(cityQuery.trim());
+      const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=5&featuretype=city`;
+      const res = await fetch(url, {
+        headers: { 'Accept-Language': 'es', 'User-Agent': 'SpotApp/1.0' }
+      });
+      if (!res.ok) throw new Error('Nominatim error');
+      const data = await res.json();
+      setCityResults(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('city search error', e);
+      setCityResults([]);
+    } finally {
+      setCitySearchLoading(false);
     }
-    setLoadingPosition(true);
-    setMensaje('Obteniendo ubicación...');
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
-      const coordStr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-      setUbicacion(coordStr);
-      setPantalla(2);
-      // try to center map if exists
-      setTimeout(() => {
-        try {
-          if (map) {
-            map.setView([lat, lng], 13);
-            if (marker) {
-              marker.setLatLng([lat, lng]);
-            } else {
-              const m = L.marker([lat, lng], { draggable: true }).addTo(map);
-              setMarker(m);
-              m.on('dragend', async (e) => {
-                const { lat: nl, lng: nlng } = e.target.getLatLng();
-                setUbicacion(`${nl.toFixed(6)}, ${nlng.toFixed(6)}`);
-                await reverseGeocodeAndFill(nl, nlng);
-              });
-            }
-          }
-        } catch (e) {
-          // ignore
-        }
-      }, 300);
-      await reverseGeocodeAndFill(lat, lng);
-      setLoadingPosition(false);
-      setMensaje('');
-    }, (err) => {
-      setLoadingPosition(false);
-      setMensaje('');
-      alert('No se pudo obtener la ubicación: ' + (err.message || err.code));
-    }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
   };
 
-  // permission diagnostic removed to keep modal minimal; we still handle geolocation errors on attempt
-  
+  const handleCityResultSelect = (result) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    const rawLabel = result.display_name || '';
+    // Trim display_name to city, state, country (first 3 comma-parts)
+    const parts = rawLabel.split(',').map(s => s.trim()).filter(Boolean);
+    const trimmedLabel = parts.slice(0, 3).join(', ');
+
+    setCityUbicacion({ lat, lng });
+    setCityLabel(trimmedLabel || rawLabel);
+    setCityResults([]);
+    setCityQuery(trimmedLabel || rawLabel);
+
+    if (cityMap) {
+      cityMap.setView([lat, lng], 16);
+
+      // Place or move city marker
+      if (cityMarker) {
+        cityMarker.setLatLng([lat, lng]);
+      } else {
+        let userImg = '/fp_default.webp';
+        try { const raw = user?.fotoPerfil || ''; if (raw && !/placeholder\.com/i.test(raw)) userImg = raw; } catch(e){}
+        const avatarHtml = `<div class="div-marker"><div class="avatar"><img src="${userImg}" alt="marker"/></div><div class="marker-tip"></div></div>`;
+        const avatarIcon = L.divIcon({ html: avatarHtml, className: 'custom-div-icon', iconSize: [48, 56], iconAnchor: [24, 56] });
+        const newCityMarker = L.marker([lat, lng], { icon: avatarIcon }).addTo(cityMap);
+        setCityMarker(newCityMarker);
+      }
+    }
+  };
+
+  // ── Render ──
+  const renderChoiceScreen = () => (
+    <div className="flex flex-1 min-h-0 gap-0">
+      {/* Card 1: Exact location */}
+      <button
+        onClick={() => { localStorage.setItem('spotapp_location_mode', 'exact'); setStep('exact-map'); }}
+        className="flex flex-col items-center justify-center gap-5 flex-1 px-6 py-10 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors border-r border-[var(--border-color)] cursor-pointer text-center"
+      >
+        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-color)] shadow-sm">
+          <FaLocationArrow className="text-[var(--accent-color)] text-2xl" />
+        </div>
+        <div>
+          <p className="text-base font-semibold text-[var(--text-primary)] mb-1.5">Compartir mi ubicación</p>
+          <p className="text-sm text-[var(--text-tertiary)] leading-relaxed max-w-[180px]">La app detecta tu posición automáticamente</p>
+        </div>
+      </button>
+
+      {/* Card 2: City search */}
+      <button
+        onClick={() => { localStorage.setItem('spotapp_location_mode', 'city'); setStep('city-search'); }}
+        className="flex flex-col items-center justify-center gap-5 flex-1 px-6 py-10 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer text-center"
+      >
+        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-color)] shadow-sm">
+          <FiEdit className="text-[var(--accent-color)] text-2xl" />
+        </div>
+        <div>
+          <p className="text-base font-semibold text-[var(--text-primary)] mb-1.5">Prefiero escribir mi ciudad</p>
+          <p className="text-sm text-[var(--text-tertiary)] leading-relaxed max-w-[180px]">Elige tu zona sin compartir tu posición exacta</p>
+        </div>
+      </button>
+    </div>
+  );
+
+  const renderExactMapScreen = () => (
+    <>
+      {/* Map */}
+      <div className="relative flex-1 min-h-0">
+        <div id="map-ubicacion" className="h-full w-full" style={{ backgroundColor: isDark ? '#1e1e1e' : '#f1f5f9' }} />
+        {loadingPosition && (
+          <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="bg-[var(--bg-secondary)]/95 border border-[var(--border-color)] px-4 py-2.5 rounded-xl flex items-center gap-2.5 shadow-md">
+              <svg className="w-4 h-4 animate-spin text-[var(--text-secondary)]" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+              <p className="text-xs text-[var(--text-secondary)]">Obteniendo ubicación...</p>
+            </div>
+          </div>
+        )}
+        {ubicacionLabel && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 bg-[var(--bg-secondary)]/95 border border-[var(--border-color)] px-3 py-1.5 rounded-xl shadow-md pointer-events-none">
+            <p className="text-xs text-[var(--text-secondary)] whitespace-nowrap">{ubicacionLabel}</p>
+          </div>
+        )}
+        {mensaje && (
+          <div className="absolute top-3 right-3 z-50 bg-[var(--bg-secondary)]/95 border border-[var(--border-color)] px-3 py-1.5 rounded-xl shadow-md pointer-events-none">
+            <p className="text-xs text-[var(--text-secondary)]">{mensaje}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-t border-[var(--border-color)] flex-shrink-0">
+        <div className="flex items-center gap-2">
+          {isFirstTime && (
+            <button
+              onClick={() => setStep('choice')}
+              className="px-4 py-2 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              Atras
+            </button>
+          )}
+          <button
+            onClick={handleCerrarModal}
+            className="px-4 py-2 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+        <button
+          onClick={handleGuardarUbicacion}
+          className="px-5 py-2 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold hover:opacity-80 transition-opacity"
+        >
+          Guardar ubicación
+        </button>
+      </div>
+    </>
+  );
+
+  const renderCitySearchScreen = () => (
+    <>
+      {/* Search bar */}
+      <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-[var(--border-color)] relative z-20">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={cityQuery}
+            onChange={(e) => setCityQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCitySearch(); }}
+            placeholder="Busca tu ciudad o municipio..."
+            className="flex-1 px-3.5 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-tertiary)] transition-colors"
+          />
+          <button
+            onClick={handleCitySearch}
+            disabled={citySearchLoading}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-medium hover:opacity-80 transition-opacity disabled:opacity-50 flex-shrink-0"
+          >
+            {citySearchLoading ? (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+              </svg>
+            )}
+            Buscar
+          </button>
+        </div>
+
+        {/* Results dropdown — absolute so it overlays the map */}
+        {cityResults.length > 0 && (
+          <div className="absolute left-4 right-4 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-xl overflow-hidden z-30">
+            {cityResults.map((result, idx) => {
+              const parts = (result.display_name || '').split(',').map(s => s.trim()).filter(Boolean);
+              const primary = parts[0] || result.display_name;
+              const secondary = parts.slice(1, 3).join(', ');
+              return (
+                <button
+                  key={result.place_id || idx}
+                  onClick={() => handleCityResultSelect(result)}
+                  className="w-full text-left px-4 py-2.5 hover:bg-[var(--bg-tertiary)] transition-colors border-b border-[var(--border-color)] last:border-0"
+                >
+                  <p className="text-sm text-[var(--text-primary)] font-medium truncate">{primary}</p>
+                  {secondary && <p className="text-xs text-[var(--text-tertiary)] truncate mt-0.5">{secondary}</p>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {cityLabel && (
+          <p className="mt-2 text-xs text-[var(--text-secondary)] px-1">
+            <span className="text-[var(--text-tertiary)]">Seleccionado:</span> {cityLabel}
+          </p>
+        )}
+      </div>
+
+      {/* City map */}
+      <div className="relative flex-1 min-h-0">
+        <div id="map-city-search" className="h-full w-full" style={{ backgroundColor: isDark ? '#1e1e1e' : '#f1f5f9' }} />
+        {!cityUbicacion.lat && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <p className="text-xs text-[var(--text-tertiary)] bg-[var(--bg-secondary)]/80 px-3 py-2 rounded-xl border border-[var(--border-color)]">Busca una ciudad para ver el marcador</p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between gap-2 px-5 py-3.5 border-t border-[var(--border-color)] flex-shrink-0">
+        <div className="flex items-center gap-2">
+          {isFirstTime && (
+            <button
+              onClick={() => setStep('choice')}
+              className="px-4 py-2 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+            >
+              Atras
+            </button>
+          )}
+          <button
+            onClick={handleCerrarModal}
+            className="px-4 py-2 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+        <button
+          onClick={handleGuardarCiudad}
+          disabled={cityUbicacion.lat == null}
+          className="px-5 py-2 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold hover:opacity-80 transition-opacity disabled:opacity-40"
+        >
+          Guardar ubicación
+        </button>
+      </div>
+    </>
+  );
+
+  // Header text varies by step
+  const headerText = {
+    choice: { title: 'Configura tu ubicación', subtitle: 'Elige cómo quieres que SpotApp conozca tu zona.' },
+    'exact-map': { title: 'Tu ubicación', subtitle: 'Mueve el marcador para ajustar. No compartas tu posición exacta.' },
+    'city-search': { title: 'Busca tu ciudad', subtitle: 'Selecciona un punto de referencia público, no tu dirección.' },
+  };
+  const currentHeader = headerText[step] || headerText['exact-map'];
+
   return (
     <div>
-      {/* Trigger: solo visible en modo no-controlado (ej: categorias.jsx) */}
+      {/* Trigger: solo visible en modo no-controlado */}
       {controlledIsOpen === undefined && (
         <div
           className="flex items-center cursor-pointer text-[var(--text-tertiary)] text-base transition-colors"
@@ -622,70 +871,87 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
               : `${ciudadSeleccionada} < ${estadoSeleccionado} < ${paisSeleccionado}`)}
         </div>
       )}
-  
+
       {modalVisible && createPortal(
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="flex flex-col w-full sm:w-[min(780px,92vw)] max-h-[95dvh] sm:max-h-[88vh] bg-[var(--bg-primary)] sm:rounded-2xl overflow-hidden shadow-2xl">
+          <div className="flex flex-col w-full sm:w-[min(780px,92vw)] h-[70dvh] sm:h-[62vh] bg-[var(--bg-primary)] sm:rounded-2xl overflow-hidden shadow-2xl">
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-color)] flex-shrink-0">
               <div>
-                <p className="text-base font-semibold text-[var(--text-primary)]">Tu ubicación</p>
-                <p className="text-xs text-[var(--text-tertiary)] mt-0.5">Mueve el marcador para ajustar. No compartas tu posición exacta.</p>
+                <p className="text-base font-semibold text-[var(--text-primary)]">{currentHeader.title}</p>
+                <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{currentHeader.subtitle}</p>
               </div>
-              <button
-                onClick={handleUseMyLocation}
-                disabled={loadingPosition}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-medium hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors disabled:opacity-50 flex-shrink-0"
-              >
-                {loadingPosition ? (
-                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-                  </svg>
-                ) : (
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    <path strokeLinecap="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/>
-                  </svg>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {(step === 'exact-map' || step === 'city-search') && (
+                  <div className="relative">
+                    <button
+                      ref={mapMenuBtnRef}
+                      onClick={() => setMapMenuOpen(v => !v)}
+                      className="p-2 rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                      aria-label="Más opciones"
+                    >
+                      <FiSliders className="w-4 h-4" />
+                    </button>
+                    {mapMenuOpen && createPortal(
+                      <>
+                        <div className="fixed inset-0 z-[10000]" onClick={() => setMapMenuOpen(false)} />
+                        <div
+                          className="fixed z-[10001] bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-xl min-w-[210px] overflow-hidden"
+                          style={(() => {
+                            const r = mapMenuBtnRef.current?.getBoundingClientRect();
+                            return r ? { top: r.bottom + 6, right: window.innerWidth - r.right } : { top: 60, right: 16 };
+                          })()}
+                        >
+                          {step === 'city-search' && (
+                            <button
+                              onClick={() => { setMapMenuOpen(false); localStorage.setItem('spotapp_location_mode', 'exact'); setStep('exact-map'); }}
+                              className="w-full text-left px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors flex items-center gap-2.5"
+                            >
+                              <FaLocationArrow className="text-[var(--accent-color)] text-xs flex-shrink-0" />
+                              Usar mi ubicación exacta
+                            </button>
+                          )}
+                          {step === 'exact-map' && (
+                            <>
+                              <button
+                                onClick={() => { setMapMenuOpen(false); if (map && marker) handleUseMyLocation(map, marker); }}
+                                className="w-full text-left px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors flex items-center gap-2.5 border-b border-[var(--border-color)]"
+                              >
+                                <FaLocationArrow className="text-[var(--accent-color)] text-xs flex-shrink-0" />
+                                Usar mi ubicación exacta
+                              </button>
+                              <button
+                                onClick={() => { setMapMenuOpen(false); localStorage.setItem('spotapp_location_mode', 'city'); setStep('city-search'); }}
+                                className="w-full text-left px-4 py-3 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors flex items-center gap-2.5"
+                              >
+                                <FiEdit className="text-[var(--accent-color)] text-xs flex-shrink-0" />
+                                Buscar ciudad
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </>,
+                      document.body
+                    )}
+                  </div>
                 )}
-                {loadingPosition ? 'Obteniendo...' : 'Usar mi ubicación'}
-              </button>
+                <button
+                  onClick={handleCerrarModal}
+                  className="p-2 rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+                  aria-label="Cerrar"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            {/* Mapa */}
-            <div className="relative flex-1 min-h-0">
-              <div id="map-ubicacion" className="h-full w-full min-h-[320px] sm:min-h-[400px]" style={{ backgroundColor: isDark ? '#1e1e1e' : '#f1f5f9' }} />
-              {noPOI && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-[var(--bg-secondary)]/95 border border-[var(--border-color)] px-3 py-2 rounded-xl flex items-center gap-2.5 shadow-md">
-                  <p className="text-xs text-[var(--text-secondary)]">Sin lugares encontrados en 2 km</p>
-                  <button onClick={() => setNoPOI(false)} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors" aria-label="Cerrar">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                  </button>
-                </div>
-              )}
-              {ubicacionLabel && (
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 bg-[var(--bg-secondary)]/95 border border-[var(--border-color)] px-3 py-1.5 rounded-xl shadow-md pointer-events-none">
-                  <p className="text-xs text-[var(--text-secondary)] whitespace-nowrap">{ubicacionLabel}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-2 px-5 py-3.5 border-t border-[var(--border-color)] flex-shrink-0">
-              <button
-                onClick={handleCerrarModal}
-                className="px-4 py-2 rounded-xl text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleGuardarUbicacion}
-                className="px-5 py-2 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold hover:opacity-80 transition-opacity"
-              >
-                Guardar ubicación
-              </button>
-            </div>
+            {/* Body: step-based rendering */}
+            {step === 'choice' && renderChoiceScreen()}
+            {step === 'exact-map' && renderExactMapScreen()}
+            {step === 'city-search' && renderCitySearchScreen()}
 
           </div>
         </div>

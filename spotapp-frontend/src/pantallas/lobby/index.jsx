@@ -148,6 +148,7 @@ export const Lobby = ({ children }) => {
     return () => clearInterval(interval);
   }, [user?.id]);
 
+
   const markAllRead = async () => {
     if (!user?.id) return;
     const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -950,6 +951,7 @@ function buildFeedWithAds(places) {
 
 /* Helper component: Cards list with infinite scroll (mobile) and responsive grid (desktop) */
 function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
+  const { user } = useUser();
   const [cards, setCards] = useState([]);
   const [allPlaces, setAllPlaces] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -964,7 +966,7 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
   const adFeedRef = useRef(null);
   const adFeedSourceRef = useRef(null);
 
-  // Reset pagination when query or feed mode changes
+  // Reset pagination when query, feed mode, or user location changes
   useEffect(() => {
     pageRef.current = 0;
     setCards([]);
@@ -972,7 +974,7 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
     setHasMore(true);
     // trigger initial load (loadMoreCards will be called by existing effect)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, feedMode]);
+  }, [query, feedMode, user?.lat, user?.lng]);
 
   useEffect(() => {
     const el = containerRef.current || document.body;
@@ -1016,7 +1018,18 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
   async function fetchAllPlaces() {
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      const endpoint = feedMode === 'trending' ? `${API_URL}/places/trending?limit=200` : `${API_URL}/places/db`;
+      let endpoint;
+      if (feedMode === 'trending') {
+        endpoint = `${API_URL}/places/trending?limit=200`;
+      } else {
+        const params = new URLSearchParams();
+        if (Number.isFinite(Number(user?.lat)) && Number.isFinite(Number(user?.lng))) {
+          params.set('lat', String(user.lat));
+          params.set('lng', String(user.lng));
+          params.set('radiusKm', '5');
+        }
+        endpoint = `${API_URL}/places/db${params.toString() ? `?${params.toString()}` : ''}`;
+      }
       const res = await fetch(endpoint);
       if (!res.ok) {
         console.warn('Failed to fetch places', res.status);
@@ -1024,7 +1037,7 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
       }
       const data = await res.json();
       // normalize each place to expected card shape
-      return data.map((p, idx) => ({
+      return data.map((p) => ({
         id: p.id,
         nombre: p.nombre || p.nombreLugar || `Lugar ${p.id}`,
         categoria: p.categoria || 'Lugar',

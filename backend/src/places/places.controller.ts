@@ -29,12 +29,19 @@ export class PlacesController {
   }
 
   // GET /places/db - devuelve places almacenados en la BD (para el frontend)
-  // Opcional: creatorId para filtrar por creador
+  // Opcional: creatorId, lat, lng, radiusKm para filtrar por zona
   @Get('db')
-  async getAllPlacesFromDb(@Query('creatorId') creatorId?: string) {
-    const parsed = Number.parseInt(String(creatorId ?? ''), 10);
-    const filterId = Number.isFinite(parsed) ? parsed : undefined;
-    return this.placesService.getAllPlacesFromDb(filterId);
+  async getAllPlacesFromDb(
+    @Query('creatorId') creatorId?: string,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('radiusKm') radiusKm?: string,
+  ) {
+    const filterId = Number.isFinite(Number(creatorId)) ? Number(creatorId) : undefined;
+    const userLat = lat ? parseFloat(lat) : undefined;
+    const userLng = lng ? parseFloat(lng) : undefined;
+    const radius = radiusKm ? parseFloat(radiusKm) : undefined;
+    return this.placesService.getAllPlacesFromDb(filterId, userLat, userLng, radius);
   }
 
   // GET /places/by-creator/:creatorId - devuelve places creados por un usuario

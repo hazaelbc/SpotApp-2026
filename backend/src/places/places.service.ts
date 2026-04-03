@@ -114,9 +114,27 @@ export class PlacesService {
     return this.normalizePlaceOutput(p, avgMap.get(p.id));
   }
 
-  async getAllPlacesFromDb(creatorId?: number) {
+  private haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  async getAllPlacesFromDb(creatorId?: number, userLat?: number, userLng?: number, radiusKm = 5) {
     const where = Number.isFinite(creatorId) ? { creatorId } : undefined;
-    const places = await this.prisma.place.findMany({ where, include: { fotos: true } as any });
+    let places = await this.prisma.place.findMany({ where, include: { fotos: true } as any }) as any[];
+
+    if (userLat != null && userLng != null) {
+      places = places.filter((p: any) => {
+        const lat = p.latitud ?? p.lat;
+        const lng = p.longitud ?? p.lng;
+        if (!lat || !lng) return false;
+        return this.haversineKm(userLat, userLng, Number(lat), Number(lng)) <= radiusKm;
+      });
+    }
+
     const placeMap = new Map(places.map((p: any) => [p.id, p]));
     const placeIds = places.map((p: any) => p.id);
     const avgByPlace = await this.resolveAverageCommentRatingsByPlace(placeIds, placeMap);
