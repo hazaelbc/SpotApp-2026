@@ -394,7 +394,7 @@ export const Lobby = ({ children }) => {
               className="hidden lg:block w-10 h-10 lg:w-12 lg:h-12 aspect-square rounded-lg overflow-hidden flex-shrink-0"
               onClick={() => setProfileUser(user)}
             />
-            <span onClick={() => setProfileUser(user)} className="hidden cursor-pointer lg:inline-block text-base font-medium text-gray-900 dark:text-[var(--text-primary)] truncate max-w-[120px]">
+            <span onClick={() => setProfileUser(user)} className="hidden cursor-pointer lg:inline-block text-base font-medium text-gray-900 dark:text-[var(--text-primary)] truncate w-[120px] flex-shrink-0">
               {user?.nombre || "Usuario"}
             </span>
             
@@ -478,7 +478,7 @@ export const Lobby = ({ children }) => {
             {/* Línea divisora - solo visible en pantallas grandes */}
             <div className="hidden lg:block h-8 w-px bg-gray-300 dark:bg-[var(--border-color)] mx-2"></div>
 
-            <div className="flex">
+            <div className="flex flex-shrink-0">
               <button
                 id="location-btn"
                 onClick={() => {
@@ -493,7 +493,7 @@ export const Lobby = ({ children }) => {
                 title={locationDisplayLabel || 'Selecciona ubicación'}
               >
                 <FiMap className="w-5 h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
-                <div className="hidden lg:block flex-1 min-w-0 max-w-[260px]">
+                <div className="hidden lg:block w-[180px] flex-shrink-0 overflow-hidden">
                   <div
                     role="navigation"
                     aria-label="breadcrumb"
