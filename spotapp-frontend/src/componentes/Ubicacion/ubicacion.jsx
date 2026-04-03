@@ -468,13 +468,34 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
 
     setCityMap(mapInstance);
 
+    // Click en el mapa mueve el marcador
+    mapInstance.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      setCityUbicacion({ lat, lng });
+      // mover marcador existente o crear uno nuevo
+      setCityMarker(prev => {
+        if (prev) { prev.setLatLng([lat, lng]); return prev; }
+        let userImg2 = '/fp_default.webp';
+        try { const raw = user?.fotoPerfil || ''; if (raw && !/placeholder\.com/i.test(raw)) userImg2 = raw; } catch(e2){}
+        const html2 = `<div class="div-marker"><div class="avatar"><img src="${userImg2}" alt="marker"/></div><div class="marker-tip"></div></div>`;
+        const icon2 = L.divIcon({ html: html2, className: 'custom-div-icon', iconSize: [48, 56], iconAnchor: [24, 56] });
+        const m2 = L.marker([lat, lng], { draggable: true, icon: icon2 }).addTo(mapInstance);
+        m2.on('dragend', (ev) => { const p = ev.target.getLatLng(); setCityUbicacion({ lat: p.lat, lng: p.lng }); });
+        return m2;
+      });
+    });
+
     // Place marker at saved location if exists — same avatar icon as exact-map
     if (hasSaved) {
       let userImg = '/fp_default.webp';
       try { const raw = user?.fotoPerfil || ''; if (raw && !/placeholder\.com/i.test(raw)) userImg = raw; } catch(e){}
       const avatarHtml = `<div class="div-marker"><div class="avatar"><img src="${userImg}" alt="marker"/></div><div class="marker-tip"></div></div>`;
       const avatarIcon = L.divIcon({ html: avatarHtml, className: 'custom-div-icon', iconSize: [48, 56], iconAnchor: [24, 56] });
-      const m = L.marker([initLat, initLng], { icon: avatarIcon }).addTo(mapInstance);
+      const m = L.marker([initLat, initLng], { draggable: true, icon: avatarIcon }).addTo(mapInstance);
+      m.on('dragend', (e) => {
+        const { lat, lng } = e.target.getLatLng();
+        setCityUbicacion({ lat, lng });
+      });
       setCityMarker(m);
       setCityUbicacion({ lat: initLat, lng: initLng });
       setCityLabel(user?.ubicacionLabel || '');
@@ -653,7 +674,11 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         try { const raw = user?.fotoPerfil || ''; if (raw && !/placeholder\.com/i.test(raw)) userImg = raw; } catch(e){}
         const avatarHtml = `<div class="div-marker"><div class="avatar"><img src="${userImg}" alt="marker"/></div><div class="marker-tip"></div></div>`;
         const avatarIcon = L.divIcon({ html: avatarHtml, className: 'custom-div-icon', iconSize: [48, 56], iconAnchor: [24, 56] });
-        const newCityMarker = L.marker([lat, lng], { icon: avatarIcon }).addTo(cityMap);
+        const newCityMarker = L.marker([lat, lng], { draggable: true, icon: avatarIcon }).addTo(cityMap);
+        newCityMarker.on('dragend', (e) => {
+          const { lat: la, lng: ln } = e.target.getLatLng();
+          setCityUbicacion({ lat: la, lng: ln });
+        });
         setCityMarker(newCityMarker);
       }
     }

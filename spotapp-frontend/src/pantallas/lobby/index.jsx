@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { uploadImage } from "../../utils/uploadImage";
+import * as nsfwjs from 'nsfwjs';
 import { useNavigate } from 'react-router-dom';
 import BarraBusqueda from "../../componentes/barra-busqueda";
 import FotoPerfil from "../../componentes/foto-perfil";
@@ -18,6 +19,7 @@ import PerfilTarjetaUbicacion from "../../componentes/perfil_tarjeta_ubicacion";
 import PerfilUsuario from "../../componentes/perfil_usuario";
 import SavedList from "../../componentes/saved_list";
 import ListaAmigos from "../../componentes/lista_amigos";
+import OnboardingWizard from "../../componentes/onboarding-wizard";
 import L from 'leaflet';
 import "leaflet/dist/leaflet.css";
 import "../../componentes/Ubicacion/ubicacion.css";
@@ -27,6 +29,11 @@ export const Lobby = ({ children }) => {
   const { user, setUser } = useUser();
   const navigate = useNavigate();
   const { isDark } = useTheme();
+
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (!user?.id) return false;
+    return !localStorage.getItem(`spotapp_onboarding_done_${user.id}`);
+  });
 
   const [location, setLocation] = useState('');
   const [draftLocation, setDraftLocation] = useState('');
@@ -60,6 +67,15 @@ export const Lobby = ({ children }) => {
   }));
   const [isSubmittingPlace, setIsSubmittingPlace] = useState(false);
   const [createWizardStep, setCreateWizardStep] = useState(1);
+  const [createNameError, setCreateNameError] = useState(false);
+  const [imageCheckState, setImageCheckState] = useState('idle'); // 'idle'|'checking'|'blocked'|'ok'
+  const [imageBlockReason, setImageBlockReason] = useState('');
+  const nsfwModelRef = useRef(null);
+  const [placeSearchQuery, setPlaceSearchQuery] = useState('');
+  const [placeSearchResults, setPlaceSearchResults] = useState([]);
+  const [placeSearchLoading, setPlaceSearchLoading] = useState(false);
+  const [placeSearchSelected, setPlaceSearchSelected] = useState('');
+  const placeSearchTimerRef = useRef(null);
   const placeMapRef = useRef(null);
   const placeMapInstanceRef = useRef(null);
   const placeMarkerRef = useRef(null);
@@ -72,11 +88,50 @@ export const Lobby = ({ children }) => {
     setCreateImagePreview(null);
     setCreateLocationCoords(null);
     setCreateLocationLabel('');
+    setCreateNameError(false);
+    setImageCheckState('idle');
+    setImageBlockReason('');
+    setPlaceSearchQuery('');
+    setPlaceSearchResults([]);
+    setPlaceSearchSelected('');
     setCreateLocationTemp({
       lat: Number.isFinite(Number(user?.lat)) ? Number(user.lat) : 19.432608,
       longitud: Number.isFinite(Number(user?.lng)) ? Number(user.lng) : -99.133209,
     });
     setCreateWizardStep(1);
+  };
+
+  const handlePlaceSearch = (q) => {
+    setPlaceSearchQuery(q);
+    setPlaceSearchResults([]);
+    clearTimeout(placeSearchTimerRef.current);
+    if (!q.trim()) return;
+    setPlaceSearchLoading(true);
+    placeSearchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`, {
+          headers: { 'Accept-Language': 'es', 'User-Agent': 'SpotApp/1.0' },
+        });
+        const data = await res.json();
+        setPlaceSearchResults(data);
+      } catch (_) {}
+      setPlaceSearchLoading(false);
+    }, 400);
+  };
+
+  const selectPlaceSearchResult = (result) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    const label = result.display_name.split(',').slice(0, 3).join(',');
+    setPlaceSearchQuery('');
+    setPlaceSearchResults([]);
+    setPlaceSearchSelected(label);
+    setCreateLocationTemp({ lat, longitud: lng });
+    setCreateLocationCoords({ lat, longitud: lng });
+    if (placeMapInstanceRef.current) {
+      placeMapInstanceRef.current.setView([lat, lng], 15);
+      if (placeMarkerRef.current) placeMarkerRef.current.setLatLng([lat, lng]);
+    }
   };
 
   const closeCreateModal = () => {
@@ -209,17 +264,11 @@ export const Lobby = ({ children }) => {
     }
     const mapEl = placeMapRef.current;
     if (!mapEl) return;
-    const mapInstance = L.map(mapEl).setView([createLocationTemp.lat, createLocationTemp.longitud], 13);
+    const mapInstance = L.map(mapEl, { attributionControl: false }).setView([createLocationTemp.lat, createLocationTemp.longitud], 15);
     placeMapInstanceRef.current = mapInstance;
 
-    const darkTiles = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; Stadia Maps &copy; OpenMapTiles &copy; OpenStreetMap contributors',
-      maxZoom: 19,
-    });
-    const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
-      maxZoom: 19,
-    });
+    const darkTiles = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', { maxZoom: 19 });
+    const lightTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
     placeTileLayerRef.current.dark = darkTiles;
     placeTileLayerRef.current.light = lightTiles;
     if (isDark) {
@@ -242,11 +291,13 @@ export const Lobby = ({ children }) => {
     marker.on('dragend', (ev) => {
       const { lat, lng } = ev.target.getLatLng();
       setCreateLocationTemp({ lat, longitud: lng });
+      setCreateLocationCoords({ lat, longitud: lng });
     });
     mapInstance.on('click', (ev) => {
       const { lat, lng } = ev.latlng;
       marker.setLatLng([lat, lng]);
       setCreateLocationTemp({ lat, longitud: lng });
+      setCreateLocationCoords({ lat, longitud: lng });
     });
     return () => {
       if (placeMapInstanceRef.current) {
@@ -273,6 +324,10 @@ export const Lobby = ({ children }) => {
   }, [isDark]);
 
   return (
+    <>
+    {showOnboarding && (
+      <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+    )}
     <div className="flex flex-col h-screen">
       {/* Header */}
       <div className="w-full px-4 transition-colors duration-200 flex-shrink-0">
@@ -691,7 +746,7 @@ export const Lobby = ({ children }) => {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md" onClick={closeCreateModal} />
 
         {/* Modal */}
-        <div className="relative z-60 w-full max-w-lg mx-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-[0_24px_64px_var(--shadow-color)] overflow-hidden flex flex-col">
+        <div className="relative z-60 w-full max-w-xl mx-4 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-[0_24px_64px_var(--shadow-color)] overflow-hidden flex flex-col">
 
           {/* Header */}
           <div className="px-6 py-4 flex items-center justify-between flex-shrink-0">
@@ -740,68 +795,167 @@ export const Lobby = ({ children }) => {
               {/* Nombre */}
               <div className="flex flex-col gap-2">
                 <label className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-widest">
-                  Nombre del lugar
+                  Nombre del lugar <span className="text-red-400">*</span>
                 </label>
                 <input
                   value={createNombre}
-                  onChange={(e) => setCreateNombre(e.target.value)}
+                  onChange={(e) => { setCreateNombre(e.target.value); if (e.target.value.trim()) setCreateNameError(false); }}
                   placeholder="Ej. Bar La Noria, Café Central..."
-                  className="w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--text-tertiary)] transition-colors"
+                  className={`w-full px-4 py-3 bg-[var(--bg-primary)] border rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors ${createNameError ? 'border-red-400 focus:border-red-400' : 'border-[var(--border-color)] focus:border-[var(--text-tertiary)]'}`}
                 />
+                {createNameError && (
+                  <p className="text-[11px] text-red-400 flex items-center gap-1">
+                    <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd"/></svg>
+                    El nombre del lugar es obligatorio
+                  </p>
+                )}
               </div>
 
               {/* Foto */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <label className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-widest">
                   Foto
                 </label>
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-xl bg-[var(--bg-primary)] border border-dashed border-[var(--border-color)] flex-shrink-0 overflow-hidden flex flex-col items-center justify-center gap-1.5">
-                    {createImagePreview ? (
-                      <img src={createImagePreview} alt="preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <>
-                        <svg className="w-6 h-6 text-[var(--text-tertiary)]" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" viewBox="0 0 24 24">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <circle cx="8.5" cy="8.5" r="1.5" />
-                          <path d="m21 15-5-5L5 21" />
-                        </svg>
-                        <span className="text-[10px] text-[var(--text-tertiary)]">Sin foto</span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label
-                      htmlFor="create-image"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-sm cursor-pointer hover:border-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                      Subir imagen
-                    </label>
-                    <input
-                      id="create-image"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        try {
-                          setCreateImagePreview(URL.createObjectURL(f));
-                          const path = `places/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-                          const url = await uploadImage(f, 'spotapp', path, { maxWidth: 500, quality: 0.8 });
-                          setCreateImageFile(url);
-                        } catch (err) {
-                          console.error('[CreatePlace] upload error', err);
-                          setCreateImageFile(null);
+                {/* Upload row */}
+                <div className="flex items-center gap-3">
+                  <label htmlFor="create-image" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-sm cursor-pointer hover:border-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    Subir imagen
+                  </label>
+                  <input id="create-image" type="file" accept="image/*" className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      e.target.value = '';
+
+                      const objectUrl = URL.createObjectURL(f);
+                      setCreateImagePreview(objectUrl);
+                      setCreateImageFile(null);
+                      setImageCheckState('checking');
+                      setImageBlockReason('');
+
+                      try {
+                        // Cargar modelo la primera vez (se cachea en ref)
+                        if (!nsfwModelRef.current) {
+                          nsfwModelRef.current = await nsfwjs.load();
                         }
-                      }}
-                    />
-                    <span className="text-[11px] text-[var(--text-tertiary)]">PNG, JPG, WEBP · máx. 5 MB</span>
+                        // Crear elemento img para clasificar
+                        const img = new Image();
+                        img.src = objectUrl;
+                        await new Promise((res) => { img.onload = res; });
+                        const predictions = await nsfwModelRef.current.classify(img);
+
+                        console.debug('[NSFW]', predictions);
+
+                        // Bloqueamos si Neutral NO es la categoría dominante
+                        // O si cualquier categoría NSFW supera su umbral mínimo
+                        const neutral = predictions.find(p => p.className === 'Neutral')?.probability ?? 0;
+                        const rules = { Porn: 0.25, Hentai: 0.25, Sexy: 0.45, Drawing: 0.75 };
+                        const blocked =
+                          neutral < 0.5                                                                    // mayoría no-neutral
+                          || predictions.find(p => rules[p.className] != null && p.probability >= rules[p.className]);
+
+                        if (blocked) {
+                          const top = predictions.reduce((a, b) => a.probability > b.probability ? a : b);
+                          const reasons = {
+                            Porn: 'Contenido explícito no permitido.',
+                            Hentai: 'Contenido de anime/hentai no permitido.',
+                            Sexy: 'Contenido sugestivo no permitido. Solo fotos del lugar.',
+                            Drawing: 'Dibujos, anime y memes no están permitidos. Sube una foto real del lugar.',
+                            Neutral: 'La imagen no parece ser una foto de un lugar. Sube una foto real.',
+                          };
+                          setImageCheckState('blocked');
+                          setImageBlockReason(reasons[top.className] || 'Imagen no permitida. Sube una foto real del lugar.');
+                          setCreateImagePreview(null);
+                          setCreateImageFile(null);
+                          URL.revokeObjectURL(objectUrl);
+                          return;
+                        }
+
+                        // Imagen aprobada — subir a Storage
+                        setImageCheckState('ok');
+                        const path = `places/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+                        const url = await uploadImage(f, 'spotapp', path, { maxWidth: 500, quality: 0.8 });
+                        setCreateImageFile(url);
+                      } catch (err) {
+                        console.error('[NSFW check] error', err);
+                        // Fail closed — si el modelo falla, no dejamos pasar
+                        setImageCheckState('blocked');
+                        setImageBlockReason('No se pudo verificar la imagen. Intenta con otra foto.');
+                        setCreateImagePreview(null);
+                        setCreateImageFile(null);
+                        URL.revokeObjectURL(objectUrl);
+                      }
+                    }}
+                  />
+                  <span className="text-[11px] text-[var(--text-tertiary)]">PNG, JPG, WEBP · máx. 5 MB</span>
+                </div>
+
+                {/* Estados de validación */}
+                {imageCheckState === 'checking' && (
+                  <div className="flex items-center gap-2 text-[12px] text-[var(--text-tertiary)]">
+                    <div className="w-3.5 h-3.5 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                    Analizando imagen...
+                  </div>
+                )}
+                {imageCheckState === 'blocked' && (
+                  <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
+                    <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                    </svg>
+                    <p className="text-[12px] text-red-400 leading-snug">{imageBlockReason}</p>
+                  </div>
+                )}
+                {imageCheckState === 'ok' && (
+                  <div className="flex items-center gap-2 text-[12px] text-emerald-400">
+                    <svg className="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                    </svg>
+                    Imagen aprobada
+                  </div>
+                )}
+
+                {/* Card preview guide — proporciones reales */}
+                <div className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] p-3 flex flex-col gap-3">
+                  {/* Feed card — proporción real 2:3 (col ~220px × h-[340px]) */}
+                  <div className="flex gap-3 items-start">
+                    <div className="flex flex-col gap-1.5 items-center" style={{flex: '0 0 27%'}}>
+                      <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-widest font-semibold">En el feed</span>
+                      <div className="w-full rounded-xl overflow-hidden bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                        <div className="relative" style={{paddingBottom: '150%'}}>
+                          <div className="absolute inset-0">
+                            {createImagePreview
+                              ? <img src={createImagePreview} alt="" className="w-full h-full object-cover" />
+                              : <div className="w-full h-full bg-[var(--bg-tertiary)] flex items-center justify-center"><svg className="w-5 h-5 text-[var(--border-color)]" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+                            }
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2">
+                              <p className="text-[12px] font-bold text-white truncate">{createNombre || 'Nombre del lugar'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Portada — proporción real banner h-56 w-full (~16:7) */}
+                    <div className="flex flex-col gap-1.5 items-center flex-1">
+                      <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-widest font-semibold">Portada</span>
+                      <div className="w-full rounded-xl overflow-hidden bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                        <div className="relative" style={{paddingBottom: '44%'}}>
+                          <div className="absolute inset-0">
+                            {createImagePreview
+                              ? <img src={createImagePreview} alt="" className="w-full h-full object-cover" />
+                              : <div className="w-full h-full bg-[var(--bg-tertiary)] flex items-center justify-center"><svg className="w-5 h-5 text-[var(--border-color)]" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+                            }
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 px-2.5 py-2">
+                              <p className="text-[12px] font-bold text-white truncate">{createNombre || 'Nombre del lugar'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -829,8 +983,14 @@ export const Lobby = ({ children }) => {
                   Cancelar
                 </button>
                 <button
-                  onClick={() => setCreateWizardStep(2)}
-                  className="px-6 py-2.5 rounded-xl bg-[var(--text-primary)] hover:opacity-80 text-[var(--bg-primary)] text-sm font-semibold flex items-center gap-2 transition-opacity"
+                  onClick={() => {
+                    if (!createNombre.trim()) { setCreateNameError(true); return; }
+                    if (imageCheckState === 'checking' || imageCheckState === 'blocked') return;
+                    setCreateNameError(false);
+                    setCreateWizardStep(2);
+                  }}
+                  disabled={imageCheckState === 'checking' || imageCheckState === 'blocked'}
+                  className="px-6 py-2.5 rounded-xl bg-[var(--text-primary)] hover:opacity-80 disabled:opacity-40 disabled:cursor-not-allowed text-[var(--bg-primary)] text-sm font-semibold flex items-center gap-2 transition-opacity"
                 >
                   Siguiente
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24">
@@ -846,35 +1006,54 @@ export const Lobby = ({ children }) => {
           {createWizardStep === 2 && (
             <div className="flex flex-col">
 
-              {/* Mapa */}
-              <div ref={placeMapRef} className="h-80 w-full" />
-
-              {/* Info + confirmar ubicación */}
-              <div className="mx-5 h-px bg-[var(--border-color)]" />
-              <div className="px-5 py-4 bg-[var(--bg-secondary)] flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-widest">Coordenadas seleccionadas</span>
-                    <span className="text-sm text-[var(--text-primary)] font-mono">
-                      {createLocationTemp?.lat?.toFixed(5)}, {createLocationTemp?.longitud?.toFixed(5)}
-                    </span>
-                  </div>
+              {/* Barra de búsqueda — encima del mapa */}
+              <div className="px-5 py-4 flex flex-col gap-2 border-b border-[var(--border-color)]">
+                <div className="flex gap-2">
+                  <input
+                    value={placeSearchQuery}
+                    onChange={(e) => handlePlaceSearch(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && placeSearchResults.length > 0) selectPlaceSearchResult(placeSearchResults[0]); }}
+                    placeholder="Busca una ciudad o lugar..."
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--text-tertiary)] transition-colors"
+                  />
                   <button
-                    onClick={() => {
-                      setCreateLocationCoords({ lat: createLocationTemp?.lat, longitud: createLocationTemp?.longitud });
-                      setCreateLocationLabel(`${createLocationTemp?.lat.toFixed(5)}, ${createLocationTemp?.longitud.toFixed(5)}`);
-                    }}
-                    className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                      createLocationCoords?.lat === createLocationTemp?.lat && createLocationCoords?.longitud === createLocationTemp?.longitud
-                        ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)]'
-                        : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--border-color)] hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)]'
-                    }`}
+                    onClick={() => { if (placeSearchResults.length > 0) selectPlaceSearchResult(placeSearchResults[0]); }}
+                    className="px-4 py-2.5 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] text-sm font-semibold flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0"
                   >
-                    {createLocationCoords?.lat === createLocationTemp?.lat && createLocationCoords?.longitud === createLocationTemp?.longitud
-                      ? '✓ Confirmada'
-                      : 'Confirmar punto'}
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    Buscar
                   </button>
                 </div>
+                {/* Resultados */}
+                {placeSearchResults.length > 0 && (
+                  <div className="rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] overflow-hidden">
+                    {placeSearchResults.map((r, i) => (
+                      <button key={i} onClick={() => selectPlaceSearchResult(r)}
+                        className="w-full px-4 py-2.5 text-left text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors border-b border-[var(--border-color)] last:border-0 truncate">
+                        {r.display_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {placeSearchLoading && (
+                  <div className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+                    <div className="w-3 h-3 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+                    Buscando...
+                  </div>
+                )}
+                {placeSearchSelected && !placeSearchResults.length && !placeSearchLoading && (
+                  <p className="text-[12px] text-[var(--text-tertiary)]">
+                    <span className="font-medium">Seleccionado:</span> {placeSearchSelected}
+                  </p>
+                )}
+              </div>
+
+              {/* Mapa */}
+              <div ref={placeMapRef} className="h-[280px] w-full" />
+
+              {/* Hint */}
+              <div className="mx-5 h-px bg-[var(--border-color)]" />
+              <div className="px-5 py-3 bg-[var(--bg-secondary)]">
                 <p className="text-[11px] text-[var(--text-tertiary)]">Toca o arrastra el marcador para ajustar la ubicación exacta.</p>
               </div>
 
@@ -925,6 +1104,7 @@ export const Lobby = ({ children }) => {
       />
       {/* Floating Add Button (movible) */}
     </div>
+    </>
   )
  };
 

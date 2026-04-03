@@ -3,8 +3,8 @@ import { FiUserPlus, FiUserCheck, FiUsers, FiClock, FiUserX } from "react-icons/
 import { useUser } from "../../userProvider";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const ZONE_RADIUS_KM = 50;
 
-// Haversine distance in km
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -17,43 +17,45 @@ function haversine(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Sort by distance bands to avoid exposing exact proximity
-// Bands: <15km | 15-50km | 50-200km | >200km | sin ubicación
-// Within each band: shuffle
-function sortByProximityBands(users, myLat, myLng) {
-  const BANDS = [15, 50, 200, Infinity];
-
-  const withDist = users.map((u) => {
-    const dist =
-      u.lat != null && u.lng != null && myLat != null && myLng != null
-        ? haversine(myLat, myLng, u.lat, u.lng)
-        : null;
-    return { ...u, _dist: dist };
-  });
-
-  const groups = [...BANDS.map(() => []), [[]]].flat(0); // placeholder
-  const banded = BANDS.map(() => []);
-  const noLocation = [];
-
-  for (const u of withDist) {
-    if (u._dist === null) {
-      noLocation.push(u);
-    } else {
-      const idx = BANDS.findIndex((b) => u._dist < b);
-      banded[idx].push(u);
-    }
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
   }
+  return a;
+}
 
-  // Shuffle within each band (Fisher-Yates)
-  const shuffle = (arr) => {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  };
+// Levenshtein similarity [0..1] between two strings
+function similarity(a, b) {
+  a = a.toLowerCase();
+  b = b.toLowerCase();
+  if (a === b) return 1;
+  if (!a.length || !b.length) return 0;
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) => Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)));
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+  return 1 - dp[m][n] / Math.max(m, n);
+}
 
-  return [...banded.flatMap(shuffle), ...shuffle(noLocation)];
+// Returns match score for a user against a query [0..1]
+// 1 = contains match, 0.5-0.99 = fuzzy, <0.5 = no match
+function matchScore(user, q) {
+  if (!q) return 0;
+  const name = (user.nombre || '').toLowerCase();
+  const ql = q.toLowerCase();
+  if (name.includes(ql)) return 1;
+  // Token-level fuzzy: split query and name into words, match best pair
+  const qTokens = ql.split(/\s+/).filter(Boolean);
+  const nTokens = name.split(/\s+/).filter(Boolean);
+  let totalScore = 0;
+  for (const qt of qTokens) {
+    const best = Math.max(...nTokens.map(nt => similarity(qt, nt)));
+    totalScore += best;
+  }
+  return totalScore / qTokens.length;
 }
 
 function SectionLabel({ children }) {
@@ -88,7 +90,6 @@ function UserCard({ person, status, onSend, onCancel, onUnfriend, onViewProfile 
 
   return (
     <div className="flex items-center gap-4 px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl">
-      {/* Avatar + Info — clickeable para ver perfil */}
       <button
         onClick={() => onViewProfile && onViewProfile(person)}
         className="flex items-center gap-3 flex-1 min-w-0 text-left"
@@ -112,42 +113,30 @@ function UserCard({ person, status, onSend, onCancel, onUnfriend, onViewProfile 
 
       <div className="flex items-center gap-2 flex-shrink-0">
         {status === 'none' && (
-          <button
-            disabled={loading}
-            onClick={() => handle(onSend)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-medium hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors disabled:opacity-50"
-          >
+          <button disabled={loading} onClick={() => handle(onSend)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-medium hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors disabled:opacity-50">
             <FiUserPlus className="w-3.5 h-3.5" style={{ strokeWidth: 1.5 }} />
             Enviar solicitud
           </button>
         )}
         {status === 'pending' && (
-          <button
-            disabled={loading}
-            onClick={() => handle(onCancel)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-medium hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors disabled:opacity-50"
-          >
+          <button disabled={loading} onClick={() => handle(onCancel)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-medium hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors disabled:opacity-50">
             <FiClock className="w-3.5 h-3.5" style={{ strokeWidth: 1.5 }} />
             Pendiente · Cancelar
           </button>
         )}
         {status === 'friend' && (
           <div className="relative" ref={menuRef}>
-            <button
-              disabled={loading}
-              onClick={() => setMenuOpen((v) => !v)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-tertiary)] text-xs font-medium hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors disabled:opacity-50"
-            >
+            <button disabled={loading} onClick={() => setMenuOpen((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-tertiary)] text-xs font-medium hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors disabled:opacity-50">
               <FiUserCheck className="w-3.5 h-3.5" style={{ strokeWidth: 1.5 }} />
               Amigos
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-full mt-1.5 w-44 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] shadow-lg z-50 overflow-hidden">
-                <button
-                  disabled={loading}
-                  onClick={() => { setMenuOpen(false); handle(onUnfriend); }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
-                >
+                <button disabled={loading} onClick={() => { setMenuOpen(false); handle(onUnfriend); }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50">
                   <FiUserX className="w-3.5 h-3.5 flex-shrink-0" style={{ strokeWidth: 1.5 }} />
                   Eliminar de amigos
                 </button>
@@ -173,10 +162,7 @@ export default function ListaAmigos({ query = "", onViewProfile }) {
         fetch(`${API_URL}/users/basic`),
         fetch(`${API_URL}/amistad/enviadas/${user.id}`),
       ]);
-      if (usersRes.ok) {
-        const data = await usersRes.json();
-        setUsers(Array.isArray(data) ? data : []);
-      }
+      if (usersRes.ok) { const d = await usersRes.json(); setUsers(Array.isArray(d) ? d : []); }
       if (estadosRes.ok) {
         const data = await estadosRes.json();
         const map = {};
@@ -195,65 +181,60 @@ export default function ListaAmigos({ query = "", onViewProfile }) {
   }, [user?.id]);
 
   useEffect(() => { loadUsers(); }, [loadUsers]);
-
   useEffect(() => {
-    const onFocus = () => loadUsers();
-    const onAmistadChanged = () => loadUsers();
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('amistad-changed', onAmistadChanged);
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('amistad-changed', onAmistadChanged);
-    };
+    const reload = () => loadUsers();
+    window.addEventListener('focus', reload);
+    window.addEventListener('amistad-changed', reload);
+    return () => { window.removeEventListener('focus', reload); window.removeEventListener('amistad-changed', reload); };
   }, [loadUsers]);
 
   const sendRequest = async (toId) => {
-    const res = await fetch(`${API_URL}/amistad/solicitud`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fromId: user.id, toId }),
-    });
+    const res = await fetch(`${API_URL}/amistad/solicitud`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fromId: user.id, toId }) });
     if (res.ok) setEstados((prev) => ({ ...prev, [toId]: 'pending' }));
   };
-
   const cancelRequest = async (toId) => {
-    const res = await fetch(`${API_URL}/amistad/solicitud`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fromId: user.id, toId }),
-    });
+    const res = await fetch(`${API_URL}/amistad/solicitud`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fromId: user.id, toId }) });
     if (res.ok) setEstados((prev) => ({ ...prev, [toId]: 'none' }));
   };
-
   const unfriendUser = async (otherId) => {
-    const res = await fetch(`${API_URL}/amistad/amigos`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userAId: user.id, userBId: otherId }),
-    });
+    const res = await fetch(`${API_URL}/amistad/amigos`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userAId: user.id, userBId: otherId }) });
     if (res.ok) setEstados((prev) => ({ ...prev, [otherId]: 'none' }));
   };
 
-  const { friends, suggestions } = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const others = users
-      .filter((u) => u.id !== user?.id)
-      .filter((u) => !q || u.nombre?.toLowerCase().includes(q) || u.email?.toLowerCase().includes(q));
+  const myLat = user?.lat ?? null;
+  const myLng = user?.lng ?? null;
+  const hasLocation = myLat != null && myLng != null;
 
+  const { friends, suggestions, fuzzyHints, isSearching } = useMemo(() => {
+    const q = query.trim();
+    const others = users.filter((u) => u.id !== user?.id);
     const friends = others.filter((u) => (estados[u.id] ?? 'none') === 'friend');
     const nonFriends = others.filter((u) => (estados[u.id] ?? 'none') !== 'friend');
 
-    const suggestions = sortByProximityBands(nonFriends, user?.lat ?? null, user?.lng ?? null);
+    if (q) {
+      // Búsqueda activa — sin filtro de zona, con fuzzy matching
+      const scored = nonFriends.map(u => ({ u, score: matchScore(u, q) }));
+      const exact = scored.filter(({ score }) => score >= 0.7).map(({ u }) => u);
+      const fuzzy = scored.filter(({ score }) => score >= 0.45 && score < 0.7).map(({ u }) => u);
+      return { friends, suggestions: exact, fuzzyHints: fuzzy, isSearching: true };
+    }
 
-    return { friends, suggestions };
-  }, [users, estados, query, user?.id, user?.lat, user?.lng]);
+    // Sin búsqueda — solo usuarios de la misma zona, orden aleatorio
+    if (!hasLocation) {
+      return { friends, suggestions: [], fuzzyHints: [], isSearching: false };
+    }
+
+    const inZone = nonFriends.filter(u => {
+      if (u.lat == null || u.lng == null) return false;
+      return haversine(myLat, myLng, u.lat, u.lng) <= ZONE_RADIUS_KM;
+    });
+
+    return { friends, suggestions: shuffle(inZone), fuzzyHints: [], isSearching: false };
+  }, [users, estados, query, user?.id, myLat, myLng, hasLocation]);
 
   if (loading) {
     return (
       <div className="flex flex-col gap-5 max-w-2xl mx-auto">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">Amigos</h2>
-        </div>
         <div className="flex flex-col gap-2">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-16 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] animate-pulse" />
@@ -266,49 +247,77 @@ export default function ListaAmigos({ query = "", onViewProfile }) {
   return (
     <div className="flex flex-col gap-7 max-w-2xl mx-auto">
 
-      {/* Sección: Amigos */}
+      {/* Amigos */}
       <div className="flex flex-col gap-3">
         <SectionLabel>Amigos</SectionLabel>
         {friends.length === 0 ? (
-          <EmptyState text="Aún no tienes amigos. Envía solicitudes para conectar con personas." />
+          <EmptyState text="Aún no tienes amigos. Busca personas o explora tu zona." />
         ) : (
           <div className="flex flex-col gap-2">
             {friends.map((person) => (
-              <UserCard
-                key={person.id}
-                person={person}
-                status="friend"
-                onSend={() => {}}
-                onCancel={() => {}}
-                onUnfriend={() => unfriendUser(person.id)}
-                onViewProfile={onViewProfile}
-              />
+              <UserCard key={person.id} person={person} status="friend"
+                onSend={() => {}} onCancel={() => {}} onUnfriend={() => unfriendUser(person.id)} onViewProfile={onViewProfile} />
             ))}
           </div>
         )}
       </div>
 
-      {/* Divisor */}
       <div className="border-t border-[var(--border-color)]" />
 
-      {/* Sección: Personas que quizás conozcas */}
+      {/* Sugerencias */}
       <div className="flex flex-col gap-3">
-        <SectionLabel>Personas que quizás conozcas</SectionLabel>
-        {suggestions.length === 0 ? (
-          <EmptyState text={query ? "Sin resultados para esa búsqueda." : "No hay más personas registradas."} />
-        ) : (
+        <SectionLabel>
+          {isSearching ? 'Resultados de búsqueda' : 'Personas que quizás conozcas'}
+        </SectionLabel>
+
+        {!isSearching && !hasLocation && (
+          <div className="flex flex-col gap-1.5 px-1">
+            <p className="text-[13px] text-[var(--text-tertiary)]">
+              Configura tu ubicación para ver personas de tu zona.
+            </p>
+          </div>
+        )}
+
+        {suggestions.length > 0 && (
           <div className="flex flex-col gap-2">
             {suggestions.map((person) => (
-              <UserCard
-                key={person.id}
-                person={person}
-                status={estados[person.id] ?? 'none'}
-                onSend={() => sendRequest(person.id)}
-                onCancel={() => cancelRequest(person.id)}
-                onUnfriend={() => unfriendUser(person.id)}
-                onViewProfile={onViewProfile}
-              />
+              <UserCard key={person.id} person={person} status={estados[person.id] ?? 'none'}
+                onSend={() => sendRequest(person.id)} onCancel={() => cancelRequest(person.id)}
+                onUnfriend={() => unfriendUser(person.id)} onViewProfile={onViewProfile} />
             ))}
+          </div>
+        )}
+
+        {isSearching && suggestions.length === 0 && fuzzyHints.length === 0 && (
+          <EmptyState text="Sin resultados. Intenta con otro nombre." />
+        )}
+
+        {/* Fuzzy hints — "¿Quisiste decir...?" */}
+        {isSearching && suggestions.length === 0 && fuzzyHints.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <p className="text-[12px] text-[var(--text-tertiary)] px-1">
+              No encontramos ese nombre exacto. ¿Quizás quisiste decir...?
+            </p>
+            <div className="flex flex-col gap-2">
+              {fuzzyHints.map((person) => (
+                <UserCard key={person.id} person={person} status={estados[person.id] ?? 'none'}
+                  onSend={() => sendRequest(person.id)} onCancel={() => cancelRequest(person.id)}
+                  onUnfriend={() => unfriendUser(person.id)} onViewProfile={onViewProfile} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {isSearching && suggestions.length > 0 && fuzzyHints.length > 0 && (
+          <div className="flex flex-col gap-3 mt-1">
+            <p className="text-[12px] text-[var(--text-tertiary)] px-1">Resultados similares</p>
+            <div className="flex flex-col gap-2">
+              {fuzzyHints.map((person) => (
+                <UserCard key={person.id} person={person} status={estados[person.id] ?? 'none'}
+                  onSend={() => sendRequest(person.id)} onCancel={() => cancelRequest(person.id)}
+                  onUnfriend={() => unfriendUser(person.id)} onViewProfile={onViewProfile} />
+              ))}
+            </div>
           </div>
         )}
       </div>

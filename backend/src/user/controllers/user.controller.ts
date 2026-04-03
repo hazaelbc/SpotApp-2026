@@ -84,6 +84,8 @@ export class UserController {
             email: existingUser.email,
             fotoPerfil: existingUser.fotoPerfil,
             cover: existingUser.cover ?? null,
+            provider: existingUser.provider ?? 'google',
+            googleId: existingUser.googleId ?? googleId ?? null,
           },
         };
       }
@@ -117,6 +119,8 @@ export class UserController {
         email: user.email,
         fotoPerfil: user.fotoPerfil,
         cover: user.cover ?? null,
+        provider: user.provider ?? 'local',
+        googleId: user.googleId ?? null,
       },
     };
   }
