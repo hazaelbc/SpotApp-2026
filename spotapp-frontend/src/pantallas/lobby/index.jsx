@@ -30,12 +30,9 @@ export const Lobby = ({ children }) => {
   const { isDark } = useTheme();
 
   const [showOnboarding, setShowOnboarding] = useState(() => {
-    return Boolean(user?.onboardingRequired);
+    if (!user?.id) return false;
+    return !localStorage.getItem(`spotapp_onboarding_done_${user.id}`);
   });
-
-  useEffect(() => {
-    setShowOnboarding(Boolean(user?.onboardingRequired));
-  }, [user?.id, user?.onboardingRequired]);
 
   const [location, setLocation] = useState('');
   const [draftLocation, setDraftLocation] = useState('');

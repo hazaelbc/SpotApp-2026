@@ -218,29 +218,26 @@ export default function OnboardingWizard({ onComplete }) {
 
       if (Object.keys(body).length > 0) {
         const res = await fetch(`${API_URL}/users/${user.id}`, {
-          method: "PUT",
+          method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
         if (res.ok) {
-          setUser((prev) => ({ ...prev, ...body, onboardingRequired: false }));
+          setUser((prev) => ({ ...prev, ...body }));
         }
-      } else {
-        setUser((prev) => ({ ...prev, onboardingRequired: false }));
       }
-
-      localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
-      onComplete?.();
     } catch (e) {
       console.error("[Onboarding]", e);
     } finally {
+      // Always mark as done and dismiss — even if the PATCH failed
+      localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
       setSubmitting(false);
+      onComplete?.();
     }
   };
 
   const handleSkip = () => {
     localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
-    setUser((prev) => ({ ...prev, onboardingRequired: false }));
     onComplete?.();
   };
 
