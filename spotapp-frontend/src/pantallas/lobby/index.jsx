@@ -1164,9 +1164,30 @@ function buildFeedWithAds(places) {
   return result;
 }
 
+/* Skeleton que imita la tarjeta mientras carga */
+function SkeletonCard() {
+  return (
+    <div className="w-full h-[340px] rounded-lg overflow-hidden relative bg-[var(--bg-secondary)] flex-shrink-0">
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%)',
+            animation: 'skeleton-shimmer 1.6s ease-in-out infinite',
+          }}
+        />
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col gap-2">
+        <div className="h-5 rounded-md bg-white/10 w-3/4" />
+        <div className="h-3.5 rounded-md bg-white/6 w-1/4" />
+      </div>
+    </div>
+  );
+}
+
 /* Helper component: Cards list with infinite scroll (mobile) and responsive grid (desktop) */
 function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
-  const { user } = useUser();
+  const { user, locationReady } = useUser();
   const [cards, setCards] = useState([]);
   const [allPlaces, setAllPlaces] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -1182,14 +1203,15 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
   const adFeedSourceRef = useRef(null);
 
   // Reset pagination when query, feed mode, or user location changes
+  // No disparar si la ubicación aún no está lista (evita fetch con coords incorrectas)
   useEffect(() => {
+    if (!locationReady) return;
     pageRef.current = 0;
     setCards([]);
     setAllPlaces(null);
     setHasMore(true);
-    // trigger initial load (loadMoreCards will be called by existing effect)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, feedMode, user?.lat, user?.lng]);
+  }, [query, feedMode, user?.lat, user?.lng, locationReady]);
 
   useEffect(() => {
     const el = containerRef.current || document.body;
@@ -1204,14 +1226,14 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
     const ro = new ResizeObserver(() => calculateCols());
     if (containerRef.current) ro.observe(containerRef.current);
 
-    // initial load
-    loadMoreCards();
+    // Carga inicial solo cuando la ubicación ya está lista
+    if (locationReady) loadMoreCards();
 
     return () => {
       try { if (containerRef.current) ro.unobserve(containerRef.current); } catch(e){}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locationReady]);
 
   useEffect(() => {
     const needed = cols * rowsPerPageRef.current;
@@ -1400,6 +1422,13 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
             }
 
             // ── Feed normal: lugares + anuncios ───────────────────────────
+            // Skeletons mientras carga la primera página
+            if (!locationReady || (loading && cards.length === 0)) {
+              return Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonCard key={`sk-${i}`} />
+              ));
+            }
+
             if (!feedWithAds || (feedWithAds.length === 0 && !loading)) {
               return <div className="col-span-full text-sm text-[var(--text-tertiary)]">No hay elementos.</div>;
             }
@@ -1413,9 +1442,15 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
           })()}
         </div>
         {children}
-        <div className="mt-6 flex justify-center items-center">
-          {loading && <div className="text-sm text-gray-500">Cargando...</div>}
-        </div>
+        {/* Spinner de paginación (solo cuando ya hay cards y carga más) */}
+        {loading && cards.length > 0 && (
+          <div className="mt-6 flex justify-center">
+            <svg className="w-5 h-5 animate-spin text-[var(--text-tertiary)]" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+          </div>
+        )}
       </div>
     </>
   );

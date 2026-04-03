@@ -181,3 +181,9 @@ svg {
   background: #111214;
   color: var(--text-primary);
 }
+
+/* Skeleton shimmer */
+@keyframes skeleton-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
