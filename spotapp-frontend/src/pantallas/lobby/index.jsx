@@ -54,7 +54,10 @@ export const Lobby = ({ children }) => {
   const [createImagePreview, setCreateImagePreview] = useState(null);
   const [createLocationCoords, setCreateLocationCoords] = useState(null); // { lat, longitud }
   const [createLocationLabel, setCreateLocationLabel] = useState('');
-  const [createLocationTemp, setCreateLocationTemp] = useState({ lat: 19.432608, longitud: -99.133209 });
+  const [createLocationTemp, setCreateLocationTemp] = useState(() => ({
+    lat: Number.isFinite(Number(user?.lat)) ? Number(user.lat) : 19.432608,
+    longitud: Number.isFinite(Number(user?.lng)) ? Number(user.lng) : -99.133209,
+  }));
   const [isSubmittingPlace, setIsSubmittingPlace] = useState(false);
   const [createWizardStep, setCreateWizardStep] = useState(1);
   const placeMapRef = useRef(null);
@@ -69,7 +72,10 @@ export const Lobby = ({ children }) => {
     setCreateImagePreview(null);
     setCreateLocationCoords(null);
     setCreateLocationLabel('');
-    setCreateLocationTemp({ lat: 19.432608, longitud: -99.133209 });
+    setCreateLocationTemp({
+      lat: Number.isFinite(Number(user?.lat)) ? Number(user.lat) : 19.432608,
+      longitud: Number.isFinite(Number(user?.lng)) ? Number(user.lng) : -99.133209,
+    });
     setCreateWizardStep(1);
   };
 
