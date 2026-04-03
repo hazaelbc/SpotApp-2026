@@ -19,6 +19,7 @@ import PerfilUsuario from "../../componentes/perfil_usuario";
 import SavedList from "../../componentes/saved_list";
 import ListaAmigos from "../../componentes/lista_amigos";
 import OnboardingWizard from "../../componentes/onboarding-wizard";
+import LocationSpotlight from "../../componentes/location-spotlight";
 import L from 'leaflet';
 import "leaflet/dist/leaflet.css";
 import "../../componentes/Ubicacion/ubicacion.css";
@@ -33,6 +34,7 @@ export const Lobby = ({ children }) => {
     if (!user?.id) return false;
     return !localStorage.getItem(`spotapp_onboarding_done_${user.id}`);
   });
+  const [showLocationTip, setShowLocationTip] = useState(false);
 
   const [location, setLocation] = useState('');
   const [draftLocation, setDraftLocation] = useState('');
@@ -364,11 +366,23 @@ export const Lobby = ({ children }) => {
           setUser((prev) => (prev ? { ...prev, onboardingRequired: false } : prev));
         } catch (e) {}
         setShowOnboarding(false);
+        // Mostrar tip de ubicación solo si nunca se ha visto
+        if (user?.id && !localStorage.getItem(`spotapp_location_tip_${user.id}`)) {
+          setShowLocationTip(true);
+        }
       }} />
+    )}
+    {showLocationTip && (
+      <LocationSpotlight
+        onDismiss={() => {
+          setShowLocationTip(false);
+          if (user?.id) localStorage.setItem(`spotapp_location_tip_${user.id}`, '1');
+        }}
+      />
     )}
     <div className="flex flex-col min-h-screen h-[100dvh]">
       {/* Header */}
-      <div className="w-full px-4 transition-colors duration-200 flex-shrink-0">
+      <div className={`w-full px-4 transition-colors duration-200 flex-shrink-0${showLocationTip ? " relative z-[9510]" : ""}`}>
           <div className="py-3 lg:py-2 border-b border-gray-200 dark:border-[var(--border-color)]">
           {/* Primera línea: Perfil y herramientas */}
           <div className="flex items-center gap-2 lg:gap-4">
@@ -466,7 +480,14 @@ export const Lobby = ({ children }) => {
 
             <div className="flex">
               <button
-                onClick={() => setIsLocationModalOpen(true)}
+                id="location-btn"
+                onClick={() => {
+                  setIsLocationModalOpen(true);
+                  if (showLocationTip) {
+                    setShowLocationTip(false);
+                    if (user?.id) localStorage.setItem(`spotapp_location_tip_${user.id}`, '1');
+                  }
+                }}
                 className="flex items-center gap-2 p-2 sm:p-2 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 aria-label="Seleccionar ubicación"
                 title={locationDisplayLabel || 'Selecciona ubicación'}
