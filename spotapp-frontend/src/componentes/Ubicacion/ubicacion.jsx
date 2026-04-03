@@ -850,7 +850,9 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         <div id="map-city-search" className="h-full w-full" style={{ backgroundColor: isDark ? '#1e1e1e' : '#f1f5f9' }} />
         {!cityUbicacion.lat && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <p className="text-xs text-[var(--text-tertiary)] bg-[var(--bg-secondary)]/80 px-3 py-2 rounded-xl border border-[var(--border-color)]">Busca una ciudad para ver el marcador</p>
+            <p className="text-xs text-[var(--text-secondary)] bg-[var(--bg-secondary)]/95 backdrop-blur-md px-4 py-2.5 rounded-xl border border-[var(--border-color)] shadow-lg">
+              Busca una ciudad para ver el marcador
+            </p>
           </div>
         )}
       </div>
