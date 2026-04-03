@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { FiArrowUp } from "react-icons/fi";
 
 const REDUCED_MOTION =
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const PAD = 10; // padding alrededor del botón
+const PAD = 10;
 const BG = "rgba(0,0,0,0.80)";
 const TRANSITION = REDUCED_MOTION ? "none" : "opacity 550ms ease-out";
 
@@ -16,7 +17,6 @@ export default function LocationSpotlight({ onDismiss }) {
     const btn = document.getElementById("location-btn");
     if (btn) setRect(btn.getBoundingClientRect());
 
-    // doble rAF → garantiza transición después del primer paint
     const id = requestAnimationFrame(() =>
       requestAnimationFrame(() => setVisible(true))
     );
@@ -25,58 +25,49 @@ export default function LocationSpotlight({ onDismiss }) {
 
   if (!rect) return null;
 
-  const hTop = rect.top - PAD;
-  const hLeft = rect.left - PAD;
-  const hW = rect.width + PAD * 2;
-  const hH = rect.height + PAD * 2;
+  const hTop    = rect.top    - PAD;
+  const hLeft   = rect.left   - PAD;
+  const hW      = rect.width  + PAD * 2;
+  const hH      = rect.height + PAD * 2;
   const hBottom = hTop + hH;
 
-  const common = {
-    position: "absolute",
-    background: BG,
-    cursor: "default",
-  };
-
+  // El contenedor tiene pointer-events: none → no bloquea el hueco.
+  // Cada rect oscuro tiene pointer-events: auto → bloquea el resto del lobby.
   return (
     <div
       className="fixed inset-0 z-[9500]"
-      style={{ opacity: visible ? 1 : 0, transition: TRANSITION, pointerEvents: "auto" }}
+      style={{ opacity: visible ? 1 : 0, transition: TRANSITION, pointerEvents: "none" }}
     >
-      {/*
-        Cuatro rectángulos oscuros que rodean el hueco del botón.
-        El botón queda expuesto → se ve con su color real (claro u oscuro)
-        y es el único elemento interactivo del lobby que queda accesible.
-      */}
+      {/* ── Cuatro rects oscuros ── */}
+      {[
+        // Arriba
+        { top: 0,       left: 0,         right: 0,    height: hTop },
+        // Izquierda
+        { top: hTop,    left: 0,         width: hLeft, height: hH },
+        // Derecha
+        { top: hTop,    left: hLeft + hW, right: 0,   height: hH },
+        // Abajo
+        { top: hBottom, left: 0,         right: 0,    bottom: 0 },
+      ].map((s, i) => (
+        <div
+          key={i}
+          onClick={onDismiss}
+          style={{
+            position: "absolute",
+            background: BG,
+            cursor: "default",
+            pointerEvents: "auto",
+            ...s,
+          }}
+        />
+      ))}
 
-      {/* Arriba */}
-      <div
-        style={{ ...common, top: 0, left: 0, right: 0, height: hTop }}
-        onClick={onDismiss}
-      />
-      {/* Izquierda */}
-      <div
-        style={{ ...common, top: hTop, left: 0, width: hLeft, height: hH }}
-        onClick={onDismiss}
-      />
-      {/* Derecha */}
-      <div
-        style={{ ...common, top: hTop, left: hLeft + hW, right: 0, height: hH }}
-        onClick={onDismiss}
-      />
-      {/* Abajo */}
-      <div
-        style={{ ...common, top: hBottom, left: 0, right: 0, bottom: 0 }}
-        onClick={onDismiss}
-      />
-
-      {/* Anillo de resaltado alrededor del botón */}
+      {/* ── Anillo alrededor del botón ── */}
       <div
         style={{
           position: "absolute",
-          top: hTop,
-          left: hLeft,
-          width: hW,
-          height: hH,
+          top: hTop, left: hLeft,
+          width: hW, height: hH,
           borderRadius: 10,
           border: "2px solid rgba(255,255,255,0.55)",
           boxShadow: "0 0 0 4px rgba(255,255,255,0.08)",
@@ -84,48 +75,37 @@ export default function LocationSpotlight({ onDismiss }) {
         }}
       />
 
-      {/* Flecha + consejo (encima del rect inferior) */}
+      {/* ── Flecha + consejo ── */}
       <div
         style={{
           position: "absolute",
-          top: hBottom + 18,
+          top: hBottom + 16,
           left: Math.max(16, hLeft),
           pointerEvents: "auto",
           display: "flex",
           flexDirection: "column",
           alignItems: "flex-start",
-          gap: 0,
         }}
       >
-        {/* Flecha SVG → apunta al botón */}
-        <svg
-          width="24"
-          height="40"
-          viewBox="0 0 24 40"
-          fill="none"
-          aria-hidden="true"
-          style={{ marginLeft: Math.max(0, rect.width / 2 - 12) }}
-        >
-          <line x1="12" y1="40" x2="12" y2="8" stroke="white" strokeWidth="1.5" />
-          <polyline
-            points="4,18 12,4 20,18"
-            fill="none"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-        </svg>
+        {/* Icono de flecha */}
+        <FiArrowUp
+          size={28}
+          color="white"
+          strokeWidth={1.5}
+          style={{
+            marginLeft: Math.max(0, rect.width / 2 - 14),
+            animation: REDUCED_MOTION ? "none" : "spotlight-bounce 1.4s ease-in-out infinite",
+          }}
+        />
 
-        {/* Texto */}
         <p
           style={{
-            marginTop: 14,
+            marginTop: 12,
             color: "rgba(255,255,255,0.92)",
-            fontSize: "clamp(1.15rem, 3.2vw, 1.5rem)",
+            fontSize: "clamp(1.1rem, 3vw, 1.45rem)",
             lineHeight: 1.35,
             fontWeight: 400,
-            maxWidth: "min(360px, 82vw)",
+            maxWidth: "min(340px, 80vw)",
           }}
         >
           Selecciona tu ubicación
@@ -133,11 +113,10 @@ export default function LocationSpotlight({ onDismiss }) {
           para ver lugares cerca de ti
         </p>
 
-        {/* Después */}
         <button
           onClick={onDismiss}
           style={{
-            marginTop: 18,
+            marginTop: 16,
             background: "none",
             border: "none",
             padding: "10px 0",
@@ -149,12 +128,19 @@ export default function LocationSpotlight({ onDismiss }) {
             textUnderlineOffset: 3,
             transition: "color 200ms",
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.8)")}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.85)")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.45)")}
         >
           Después
         </button>
       </div>
+
+      <style>{`
+        @keyframes spotlight-bounce {
+          0%, 100% { transform: translateY(0); }
+          50%       { transform: translateY(-6px); }
+        }
+      `}</style>
     </div>
   );
 }
