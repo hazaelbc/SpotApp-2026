@@ -261,9 +261,6 @@ export default function OnboardingWizard({ onComplete }) {
               <h2 className="text-base font-semibold text-[var(--text-primary)]">
                 {step === photoStepIndex ? "Tu foto de perfil" : step === termsStepIndex ? "Términos y condiciones" : "¡Bienvenido a SpotApp!"}
               </h2>
-              <button onClick={handleSkip} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors">
-                Saltar
-              </button>
             </div>
 
             {/* Step bar */}
@@ -326,7 +323,7 @@ export default function OnboardingWizard({ onComplete }) {
             {step === photoStepIndex && (
               <>
                 <p className="text-sm text-[var(--text-secondary)]">
-                  Elige una foto para tu perfil. Puedes saltarte este paso y subirla después.
+                  Elige una foto para tu perfil. Puedes agregarla después si lo prefieres.
                 </p>
 
                 <AvatarPreview preview={photoPreview} />
@@ -360,6 +357,13 @@ export default function OnboardingWizard({ onComplete }) {
                     {imageBlockReason}
                   </p>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setStep((s) => s + 1)}
+                  className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] underline underline-offset-2 self-start transition-colors"
+                >
+                  Continuar sin foto
+                </button>
               </>
             )}
 
