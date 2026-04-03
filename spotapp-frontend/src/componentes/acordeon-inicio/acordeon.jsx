@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 import { useNavigate } from "react-router-dom";
 import { useUser } from "../../userProvider.jsx";
-import { signInWithGoogle } from "../../config/firebase";
+import { signInWithGoogle, handleGoogleRedirect } from "../../config/firebase";
 import Header_Login from "../Header_Login";
 
 
@@ -17,6 +17,32 @@ const Login = () => {
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
   const vantaRef = useRef(null);
+
+  // Recoger resultado de signInWithRedirect (móvil)
+  useEffect(() => {
+    handleGoogleRedirect().then(async (result) => {
+      if (!result?.user) return;
+      const fireUser = result.user;
+      const response = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: fireUser.displayName,
+          email: fireUser.email,
+          contrasena: fireUser.uid,
+          googleId: fireUser.uid,
+          provider: 'google',
+          fotoPerfil: fireUser.photoURL,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data.user);
+        localStorage.setItem("authToken", "google-token-" + fireUser.uid);
+        navigate('/lobby');
+      }
+    }).catch(() => {});
+  }, []);
 
   // Validar formato de email
   const isValidEmail = (email) => {
@@ -46,11 +72,12 @@ const Login = () => {
   const handleGoogleLogin = async () => {
     console.log('Iniciando sesión con Google...');
     try {
-      // Autenticar con Google usando Firebase
       const user = await signInWithGoogle();
+      // En móvil, signInWithGoogle inicia el redirect y retorna null — el resultado
+      // se procesa en el useEffect de arriba cuando la página recarga.
+      if (!user) return;
       console.log('Usuario de Google obtenido:', user);
-      
-      // Intentar iniciar sesión o registrar al usuario en el backend
+
       const response = await fetch('/api/users/register', {
         method: 'POST',
         headers: {

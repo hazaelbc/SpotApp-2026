@@ -230,14 +230,14 @@ export default function OnboardingWizard({ onComplete }) {
       console.error("[Onboarding]", e);
     } finally {
       // Always mark as done and dismiss — even if the PATCH failed
-      localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
+      if (user?.id) localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
       setSubmitting(false);
       onComplete?.();
     }
   };
 
   const handleSkip = () => {
-    localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
+    if (user?.id) localStorage.setItem(`spotapp_onboarding_done_${user.id}`, "1");
     onComplete?.();
   };
 
