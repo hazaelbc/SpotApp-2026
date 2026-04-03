@@ -382,7 +382,7 @@ export const Lobby = ({ children }) => {
     )}
     <div className="flex flex-col min-h-screen h-[100dvh]">
       {/* Header */}
-      <div className={`w-full px-4 transition-colors duration-200 flex-shrink-0${showLocationTip ? " relative z-[9510]" : ""}`}>
+      <div className="w-full px-4 transition-colors duration-200 flex-shrink-0">
           <div className="py-3 lg:py-2 border-b border-gray-200 dark:border-[var(--border-color)]">
           {/* Primera línea: Perfil y herramientas */}
           <div className="flex items-center gap-2 lg:gap-4">
