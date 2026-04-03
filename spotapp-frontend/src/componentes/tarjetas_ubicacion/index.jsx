@@ -1,7 +1,6 @@
 import React from "react";
-import Calificacion_ from "../calificacion/calificacion.jsx"
 
-const TarjetaUbicacionIndividual = ({ imagen, nombre, calificacion, onClick, descripcion, className="", readOnlyRating = false }) => {
+const TarjetaUbicacionIndividual = ({ imagen, nombre, calificacion, onClick, descripcion, className="" }) => {
   const hasImage = imagen && typeof imagen === 'string' && imagen.trim() !== '';
 
   return (
@@ -28,10 +27,19 @@ const TarjetaUbicacionIndividual = ({ imagen, nombre, calificacion, onClick, des
 
       {/* Contenido inferior — se oculta en hover */}
       <div className="absolute bottom-0 left-0 right-0 z-20 p-4 transition-opacity duration-300 group-hover:opacity-0">
-        <h3 className="text-lg font-bold text-white leading-snug mb-1.5 line-clamp-2 drop-shadow-md">
-          {nombre}
-        </h3>
-        <Calificacion_ valorInicial={calificacion} onCalificar={() => {}} readOnly={readOnlyRating} className="stroke" />
+        <div className="flex items-end justify-between gap-2">
+          <h3 className="text-lg font-bold text-white leading-snug line-clamp-2 drop-shadow-md flex-1">
+            {nombre}
+          </h3>
+          {calificacion > 0 && (
+            <span className="flex items-center gap-1 flex-shrink-0 mb-0.5">
+              <span className="text-yellow-400 text-base leading-none">★</span>
+              <span className="text-white text-sm font-semibold leading-none drop-shadow-md">
+                {Number(calificacion).toFixed(1)}
+              </span>
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Descripción — aparece en hover */}
