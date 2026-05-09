@@ -1391,7 +1391,7 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
         {/* Banner superior — aparece 40% de las veces entre categorías y el grid */}
         {showTopAd && (
           <div className="mb-4">
-            <AdSenseBanner fullWidth height={90} />
+            <AdSenseBanner fullWidth height={90} slotId="1553845738" />
           </div>
         )}
 
@@ -1435,7 +1435,7 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
 
             return feedWithAds.map(item => {
               if (item.type === 'ad') {
-                return <AdSenseBanner key={item.id} colSpan={item.colSpan} />;
+                return <AdSenseBanner key={item.id} colSpan={item.colSpan} slotId="1553845738" />;
               }
               return renderCard(item);
             });
