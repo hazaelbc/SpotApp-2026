@@ -6,5 +6,16 @@
       "source": "/api/:path*",
       "destination": "https://spotapp-2026.onrender.com/:path*"
     }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin-allow-popups"
+        }
+      ]
+    }
   ]
 }
