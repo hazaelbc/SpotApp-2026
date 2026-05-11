@@ -157,6 +157,12 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
     }
 
     try {
+      if (!user?.id) {
+        console.error('Cannot save location: user not loaded or missing ID');
+        alert('Error: Usuario no cargado. Intenta recargar la página.');
+        return;
+      }
+
       const built = await reverseGeocodeAndFill(latitud, longitud).catch(() => '');
       const labelToSave = built || ubicacionLabel || '';
       if (typeof controlledOnSave === 'function') {
@@ -607,7 +613,8 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
     if (ignoreUserInitial || typeof controlledOnSave === 'function') return;
     const fetchUbicacion = async () => {
       try {
-        const response = await fetch(`${API_URL}/user-ubicacion/${user.id}`);
+        if (!user?.id) return null;
+      const response = await fetch(`${API_URL}/user-ubicacion/${user.id}`);
         if (response.ok) {
           const data = await response.json();
           if (data.latitud && data.longitud) {
@@ -632,7 +639,7 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
       }
     };
     fetchUbicacion();
-  }, [user.id, ignoreUserInitial, controlledOnSave]);
+  }, [user?.id, ignoreUserInitial, controlledOnSave]);
 
   async function reverseGeocodeAndFill(lat, lng) {
     try {
@@ -937,7 +944,7 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
         </div>
       )}
 
-      {modalVisible && createPortal(
+      {modalVisible && user?.id && createPortal(
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="flex flex-col w-full sm:w-[min(780px,92vw)] h-[92dvh] sm:h-[62vh] bg-[var(--bg-primary)] rounded-t-2xl sm:rounded-2xl overflow-hidden shadow-2xl">
 
