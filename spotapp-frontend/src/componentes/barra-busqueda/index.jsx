@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FiSearch } from "react-icons/fi";
 
-export const BarraBusqueda = ({ onSearch, className = "", placeholder = "Buscar en la Lobby...", debounceMs = 250 }) => {
+export const BarraBusqueda = ({ onSearch, className = "", placeholder = "Buscar en el 32 Lobby...", debounceMs = 250 }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleSubmit = (e) => {

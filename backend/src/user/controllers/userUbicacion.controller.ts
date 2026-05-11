@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Put} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Put, BadRequestException } from '@nestjs/common';
 import { UserUbicacionService } from '../services/userUbicacion.service';
 import { CreateUserUbicacionDto } from '../dto/userUbicacionDtos/create-userUbicacion.dto';
 import { UpdateUserUbicacionDto } from '../dto/userUbicacionDtos/update-userUbicacion.dto';
@@ -19,26 +19,30 @@ export class UserUbicacionController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    const numericId = parseInt(id, 10); // Convierte el ID a un número
+    const numericId = parseInt(id, 10);
     if (isNaN(numericId)) {
-      throw new Error('El ID proporcionado no es válido.');
+      throw new BadRequestException('El ID debe ser un número válido.');
     }
     return this.userUbicacionService.findOne(numericId);
   }
   
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.userUbicacionService.remove(+id);
+    const numericId = parseInt(id, 10);
+    if (isNaN(numericId)) {
+      throw new BadRequestException('El ID debe ser un número válido.');
+    }
+    return this.userUbicacionService.remove(numericId);
   }
 
   @Put(':id')
   async update(
-    @Param('id') id: string, // Cambia el tipo a string para recibirlo como texto
+    @Param('id') id: string,
     @Body() updateUserUbicacionDto: { latitud: number; longitud: number; ubicacionLabel?: string },
   ) {
-    const numericId = parseInt(id, 10); // Convierte el ID a un número
+    const numericId = parseInt(id, 10);
     if (isNaN(numericId)) {
-      throw new Error('El ID proporcionado no es válido.'); // Maneja el caso de un ID no numérico
+      throw new BadRequestException('El ID debe ser un número válido.');
     }
 
     console.log('Datos recibidos en el controlador:', { id: numericId, ...updateUserUbicacionDto });

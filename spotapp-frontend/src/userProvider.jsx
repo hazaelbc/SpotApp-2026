@@ -38,33 +38,63 @@ export const UserProvider = ({ children }) => {
     setLocationReady(false);
 
     const loadUbicacion = async () => {
-      // Mínimo 1 segundo de espera para que el estado del usuario se estabilice
       const startedAt = Date.now();
-      try {
-        const res = await fetch(`${API_URL}/user-ubicacion/${user.id}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data && (data.latitud != null || data.longitud != null || data.ubicacionLabel)) {
-          setUser((prev) => ({
-            ...prev,
-            ubicacion:
-              data.latitud != null && data.longitud != null
-                ? `${data.latitud}, ${data.longitud}`
-                : prev?.ubicacion,
-            ubicacionLabel: data.ubicacionLabel ?? prev?.ubicacionLabel,
-            lat: data.latitud ?? prev?.lat,
-            lng: data.longitud ?? prev?.lng,
-          }));
+      const maxWaitMs = 5000; // máximo 5 segundos de espera total
+      const minWaitMs = 800; // mínimo 800ms para estabilidad del estado
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      const attemptLoad = async () => {
+        try {
+          const res = await fetch(`${API_URL}/user-ubicacion/${user.id}`, {
+            signal: AbortSignal.timeout(3000), // timeout por petición de 3s
+          });
+          
+          if (!res.ok) {
+            if (retryCount < maxRetries && res.status === 500) {
+              retryCount++;
+              console.debug(`Reintentando carga de ubicación (intento ${retryCount}/${maxRetries})...`);
+              await new Promise(r => setTimeout(r, Math.min(500 * retryCount, 2000)));
+              return attemptLoad();
+            }
+            console.debug(`No se pudo cargar ubicación: ${res.status}`);
+            return false;
+          }
+
+          const data = await res.json();
+          if (data && (data.latitud != null || data.longitud != null || data.ubicacionLabel)) {
+            setUser((prev) => ({
+              ...prev,
+              ubicacion:
+                data.latitud != null && data.longitud != null
+                  ? `${data.latitud}, ${data.longitud}`
+                  : prev?.ubicacion,
+              ubicacionLabel: data.ubicacionLabel ?? prev?.ubicacionLabel,
+              lat: data.latitud ?? prev?.lat,
+              lng: data.longitud ?? prev?.lng,
+            }));
+            console.debug('Ubicación cargada:', data.ubicacionLabel || `${data.latitud}, ${data.longitud}`);
+          }
+          return true;
+        } catch (e) {
+          if (retryCount < maxRetries && (e.name === 'AbortError' || !navigator.onLine)) {
+            retryCount++;
+            console.debug(`Error al cargar ubicación, reintentando (${retryCount}/${maxRetries}):`, e.message);
+            await new Promise(r => setTimeout(r, Math.min(500 * retryCount, 2000)));
+            return attemptLoad();
+          }
+          console.debug('No se pudo cargar ubicación después de reintentos:', e.message);
+          return false;
         }
-      } catch (e) {
-        console.debug('No se pudo cargar la ubicación del usuario:', e);
-      } finally {
-        fetchedUbicacionUserIdRef.current = user.id;
-        // Garantiza al menos 1 s antes de que el feed empiece a cargar
-        const elapsed = Date.now() - startedAt;
-        const remaining = Math.max(0, 1000 - elapsed);
-        setTimeout(() => setLocationReady(true), remaining);
-      }
+      };
+
+      await attemptLoad();
+      
+      // Garantiza mínimo minWaitMs pero máximo maxWaitMs de espera total
+      fetchedUbicacionUserIdRef.current = user.id;
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, Math.min(minWaitMs, maxWaitMs) - elapsed);
+      setTimeout(() => setLocationReady(true), remaining);
     };
 
     loadUbicacion();
