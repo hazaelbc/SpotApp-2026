@@ -126,6 +126,14 @@ const Registro = ({ onSubmit }) => {
 
       if (response.ok) {
         alert('¡Registro exitoso con Google! Bienvenido ' + data.user.nombre);
+        console.log("Usuario recibido tiene ID?", data.user?.id, "Completo:", data.user);
+        
+        if (!data.user?.id) {
+          console.error("❌ ERROR: El backend NO retornó un ID válido. Respuesta:", data);
+          alert('Error: No se recibió ID del usuario. Contacte soporte.');
+          return;
+        }
+        
         setUser(data.user);
         localStorage.setItem("authToken", "google-token-" + user.uid);
         navigate('/lobby');

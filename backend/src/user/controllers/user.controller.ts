@@ -140,12 +140,20 @@ export class UserController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id); // convierte a número
+    const numId = parseInt(id, 10);
+    if (isNaN(numId)) {
+      throw new BadRequestException('ID debe ser un número válido');
+    }
+    return this.userService.findOne(numId);
   }
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+    const numId = parseInt(id, 10);
+    if (isNaN(numId)) {
+      throw new BadRequestException('ID debe ser un número válido');
+    }
+    return this.userService.update(numId, updateUserDto);
   }
 
   @Delete(':id')

@@ -70,6 +70,14 @@ const Login = () => {
       if (response.ok) {
         // Login exitoso (ya sea nuevo registro o usuario existente)
         console.log("Inicio de sesión con Google exitoso:", data);
+        console.log("Usuario recibido tiene ID?", data.user?.id, "Completo:", data.user);
+        
+        if (!data.user?.id) {
+          console.error("❌ ERROR: El backend NO retornó un ID válido. Respuesta:", data);
+          setEmailError('Error: No se recibió ID del usuario. Contacte soporte.');
+          return;
+        }
+        
         setUser(data.user);
         localStorage.setItem("authToken", "google-token-" + user.uid);
         navigate('/lobby');
