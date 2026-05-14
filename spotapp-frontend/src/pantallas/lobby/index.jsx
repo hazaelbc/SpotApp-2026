@@ -1604,10 +1604,10 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
   }
 
   // load places from backend (once) and store in `allPlaces` for client-side pagination
-  // Con reintentos automáticos + timeout mejorado
+  // Con reintentos automáticos + timeout mejorado para cold starts
   async function fetchAllPlaces() {
-    const MAX_RETRIES = 3;
-    const TIMEOUT_MS = 15000; // 15 segundos
+    const MAX_RETRIES = 4;
+    const TIMEOUT_MS = 30000; // 30 segundos (Render cold start puede tardar)
     
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
