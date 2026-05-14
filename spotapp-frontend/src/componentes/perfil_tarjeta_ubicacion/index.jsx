@@ -48,6 +48,7 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
   const [amigos, setAmigos] = useState([]);
   const [sendingTo, setSendingTo] = useState(null);
   const [sentTo, setSentTo] = useState({});
+  const [currentPlace, setCurrentPlace] = useState(item);
   const shareRef = useRef(null);
 
   useEffect(() => {
@@ -61,6 +62,25 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [shareOpen]);
+
+  // Inicializar currentPlace y actualizarlo cuando item cambia
+  useEffect(() => {
+    setCurrentPlace(item);
+  }, [item]);
+
+  // Refrescar datos del lugar cuando se agrega una foto
+  const refreshPlace = async () => {
+    if (!item?.id) return;
+    try {
+      const res = await fetch(`${API_URL}/places/${item.id}`);
+      if (res.ok) {
+        const updated = await res.json();
+        setCurrentPlace(updated);
+      }
+    } catch (err) {
+      console.error('Error refrescando lugar:', err);
+    }
+  };
 
   const handleCopyLink = () => {
     const lat = item?.lat ?? item?.latitude;
@@ -466,16 +486,16 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
 
   // For demo: build a larger set of images to exercise the gallery behavior
   const galleryImages = useMemo(() => {
-    const base = resolveGalleryImages(item);
+    const base = resolveGalleryImages(currentPlace);
     // Solo mostrar las fotos reales del lugar (sin placeholders)
     return base;
-  }, [item]);
+  }, [currentPlace]);
 
   const displayedRating = useMemo(() => {
     if (Number.isFinite(averageCommentRating)) return averageCommentRating;
-    if (typeof item?.calificacion === 'number') return item.calificacion;
+    if (typeof currentPlace?.calificacion === 'number') return currentPlace.calificacion;
     return null;
-  }, [averageCommentRating, item?.calificacion]);
+  }, [averageCommentRating, currentPlace?.calificacion]);
 
   return (
     <div className="p-4 lg:p-6">
@@ -600,8 +620,9 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">Galería del lugar</h3>
               <AddPhotoToPlaceButton 
-                placeId={item.id}
+                placeId={currentPlace.id}
                 usuarioId={user?.id}
+                onPhotoAdded={refreshPlace}
               />
             </div>
             {galleryImages.length > 0 ? (

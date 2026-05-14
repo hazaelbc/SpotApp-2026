@@ -82,9 +82,9 @@ export default function AddPhotoToPlaceButton({
 
       const data = await response.json();
       
-      // Callback
+      // Callback para refrescar datos del lugar
       if (onPhotoAdded) {
-        onPhotoAdded(data.place);
+        onPhotoAdded();
       }
 
       // Mensaje de éxito
