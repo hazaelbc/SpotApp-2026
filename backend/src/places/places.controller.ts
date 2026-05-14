@@ -119,6 +119,21 @@ export class PlacesController {
     return this.placesService.incrementViews(id);
   }
 
+  // POST /places/:id/fotos - agregar foto a galería comunitaria
+  @Post(':id/fotos')
+  async addPhotoToPlace(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+  ) {
+    const { imagenUrl, usuarioId } = body ?? {};
+
+    if (!imagenUrl) {
+      throw new BadRequestException('imagenUrl es requerido');
+    }
+
+    return this.placesService.addPhotoToPlace(id, imagenUrl, usuarioId);
+  }
+
   // Debug: crear un place manualmente (útil para pruebas con Postman)
   @Post()
   @UseInterceptors(FileInterceptor('imagen', { storage: memoryStorage() }))
@@ -179,20 +194,5 @@ export class PlacesController {
     };
 
     return out;
-  }
-
-  // POST /places/:id/fotos - agregar foto a galería comunitaria
-  @Post(':id/fotos')
-  async addPhotoToPlace(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: any,
-  ) {
-    const { imagenUrl, usuarioId } = body ?? {};
-
-    if (!imagenUrl) {
-      throw new BadRequestException('imagenUrl es requerido');
-    }
-
-    return this.placesService.addPhotoToPlace(id, imagenUrl, usuarioId);
   }
 }
