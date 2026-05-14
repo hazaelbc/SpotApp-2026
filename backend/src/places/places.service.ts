@@ -404,12 +404,16 @@ export class PlacesService {
   // Agregar foto a galería comunitaria
   async addPhotoToPlace(placeId: number, imagenUrl: string, usuarioId?: number) {
     try {
+      console.log(`📸 [addPhotoToPlace] Agregando foto a place ${placeId}`);
+      
       // Obtener el número de fotos existentes para determinar el orden
       const existingPhotos = await this.prisma.placePhoto.findMany({
         where: { placeId },
         orderBy: { orden: 'desc' },
         take: 1,
       });
+
+      console.log(`📸 [addPhotoToPlace] Fotos existentes: ${existingPhotos.length}`);
 
       const nextOrden = existingPhotos.length > 0 ? existingPhotos[0].orden + 1 : 0;
 
@@ -422,11 +426,15 @@ export class PlacesService {
         },
       });
 
+      console.log(`📸 [addPhotoToPlace] Foto creada con id ${newPhoto.id}, orden ${nextOrden}`);
+
       // Retornar el place actualizado con todas sus fotos
       const updatedPlace = await this.prisma.place.findUnique({
         where: { id: placeId },
         include: { fotos: true },
       });
+
+      console.log(`📸 [addPhotoToPlace] Place retorna ${updatedPlace?.fotos?.length || 0} fotos`);
 
       return this.normalizePlaceOutput(updatedPlace);
     } catch (error: any) {

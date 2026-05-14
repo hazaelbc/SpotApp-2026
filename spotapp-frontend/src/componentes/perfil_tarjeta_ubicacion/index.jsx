@@ -70,17 +70,16 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
 
   // Refrescar datos del lugar cuando se agrega una foto
   const refreshPlace = async () => {
-    if (!item?.id) return;
+    if (!currentPlace?.id) return;
     try {
-      const res = await fetch(`${API_URL}/places/${item.id}`);
+      const res = await fetch(`${API_URL}/places/${currentPlace.id}`, {
+        cache: 'no-store',  // Evitar cache HTTP
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+      });
       if (res.ok) {
         const updated = await res.json();
-        console.log('DEBUG - Respuesta del servidor:', {
-          id: updated.id,
-          nombre: updated.nombre,
-          fotos: updated.fotos,
-          fotosLength: updated.fotos?.length,
-        });
+        console.log(`DEBUG - Fotos en BD: ${updated.fotos?.length || 0}`);
+        console.log('DEBUG - Fotos array:', updated.fotos);
         setCurrentPlace(updated);
       }
     } catch (err) {
@@ -483,17 +482,22 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
       if(!srcItem) return [];
       // Mostrar SOLO las fotos de galería (no incluir el banner/imagen principal)
       if (Array.isArray(srcItem.fotos) && srcItem.fotos.length) {
-        return srcItem.fotos.map(f => (typeof f === 'string' ? f : (f && (f.url || f.src || f.imagen) ? (f.url || f.src || f.imagen) : null))).filter(Boolean);
+        const result = srcItem.fotos.map(f => (typeof f === 'string' ? f : (f && (f.url || f.src || f.imagen) ? (f.url || f.src || f.imagen) : null))).filter(Boolean);
+        console.log(`DEBUG - resolveGalleryImages: ${result.length} fotos procesadas`);
+        return result;
       }
-      // Si no hay fotos de galería, retornar array vacío (no mostrar el banner aquí)
+      console.log('DEBUG - resolveGalleryImages: NO hay fotos, array vacío');
       return [];
-    }catch(e){ return []; }
+    }catch(e){ 
+      console.error('ERROR en resolveGalleryImages:', e);
+      return []; 
+    }
   }
 
   // For demo: build a larger set of images to exercise the gallery behavior
   const galleryImages = useMemo(() => {
     const base = resolveGalleryImages(currentPlace);
-    // Solo mostrar las fotos reales del lugar (sin placeholders)
+    console.log(`DEBUG - galleryImages final: ${base.length} fotos para renderizar`);
     return base;
   }, [currentPlace]);
 
