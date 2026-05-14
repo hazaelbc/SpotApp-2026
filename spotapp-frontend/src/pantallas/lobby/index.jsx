@@ -1604,10 +1604,11 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
   }
 
   // load places from backend (once) and store in `allPlaces` for client-side pagination
-  // Con reintentos automáticos (máx 3 intentos) + backoff exponencial
+  // Con reintentos automáticos (máx 4 intentos) + backoff exponencial + timeout mejorado
   async function fetchAllPlaces() {
-    const MAX_RETRIES = 3;
-    const INITIAL_DELAY = 1000; // 1 segundo
+    const MAX_RETRIES = 4;
+    const INITIAL_DELAY = 500; // 500ms
+    const TIMEOUT_MS = 15000; // 15 segundos
     
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
@@ -1625,9 +1626,9 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
           endpoint = `${API_URL}/places/db${params.toString() ? `?${params.toString()}` : ''}`;
         }
         
-        // Fetch con timeout (10s)
+        // Fetch con timeout mejorado
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
         
         const res = await fetch(endpoint, { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -1662,16 +1663,16 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
         if (attempt === MAX_RETRIES) {
           // Último intento falló
           const errorMsg = e.name === 'AbortError' 
-            ? 'La solicitud tardó demasiado. Verifica tu conexión.'
+            ? 'La conexión tardó mucho tiempo. Verifica tu internet y recarga.'
             : `No se pudieron cargar los lugares. Error: ${e.message}`;
           setLoadError(errorMsg);
           console.error('[CardsList] Todos los reintentos fallaron:', errorMsg);
           return null;
         }
         
-        // Esperar antes de reintentar (backoff exponencial: 1s, 2s, 4s)
+        // Esperar antes de reintentar (backoff exponencial: 500ms, 1s, 2s, 4s)
         const delayMs = INITIAL_DELAY * Math.pow(2, attempt - 1);
-        console.log(`[CardsList] Reintentando en ${delayMs}ms...`);
+        console.log(`[CardsList] Reintentando en ${delayMs}ms (intento ${attempt}/${MAX_RETRIES})...`);
         await new Promise(r => setTimeout(r, delayMs));
       }
     }
