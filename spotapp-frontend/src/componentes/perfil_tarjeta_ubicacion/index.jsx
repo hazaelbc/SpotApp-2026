@@ -68,6 +68,29 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
     setCurrentPlace(item);
   }, [item]);
 
+  // Cargar datos completos del lugar (incluyendo fotos) al montar
+  useEffect(() => {
+    if (!item?.id) return;
+    
+    const loadCompletePlace = async () => {
+      try {
+        const res = await fetch(`${API_URL}/places/${item.id}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+        });
+        if (res.ok) {
+          const complete = await res.json();
+          console.log(`✅ Lugar cargado con ${complete.fotos?.length || 0} fotos`);
+          setCurrentPlace(complete);
+        }
+      } catch (err) {
+        console.error('Error cargando lugar completo:', err);
+      }
+    };
+
+    loadCompletePlace();
+  }, [item?.id]);
+
   // Refrescar datos del lugar cuando se agrega una foto
   const refreshPlace = async () => {
     if (!currentPlace?.id) return;
