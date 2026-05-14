@@ -75,11 +75,11 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
       const res = await fetch(`${API_URL}/places/${item.id}`);
       if (res.ok) {
         const updated = await res.json();
-        console.log('📸 Lugar actualizado:', {
+        console.log('DEBUG - Respuesta del servidor:', {
           id: updated.id,
           nombre: updated.nombre,
-          fotosCount: updated.fotos?.length || 0,
           fotos: updated.fotos,
+          fotosLength: updated.fotos?.length,
         });
         setCurrentPlace(updated);
       }
@@ -493,11 +493,7 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
   // For demo: build a larger set of images to exercise the gallery behavior
   const galleryImages = useMemo(() => {
     const base = resolveGalleryImages(currentPlace);
-    console.log('🖼️ Galería - Fotos reales de BD:', {
-      currentPlace: currentPlace?.nombre,
-      fotosEnBD: currentPlace?.fotos || [],
-      resolvedImages: base,
-    });
+    // Solo mostrar las fotos reales del lugar (sin placeholders)
     return base;
   }, [currentPlace]);
 
