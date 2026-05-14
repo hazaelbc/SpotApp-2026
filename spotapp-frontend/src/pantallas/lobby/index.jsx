@@ -1543,17 +1543,23 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
   // Manejo de errores de carga
   const [loadError, setLoadError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  // Track if we've done initial load to avoid resetting on locationReady=true
+  const initialLoadDoneRef = useRef(false);
 
   // Reset pagination when query, feed mode, or user location changes
-  // No disparar si la ubicación aún no está lista (evita fetch con coords incorrectas)
+  // PERO NO en la carga inicial (evita race condition con segundo useEffect)
   useEffect(() => {
     if (!locationReady) return;
+    if (!initialLoadDoneRef.current) {
+      initialLoadDoneRef.current = true;
+      return; // Skip reset on first load
+    }
     pageRef.current = 0;
     setCards([]);
     setAllPlaces(null);
     setHasMore(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [query, feedMode, user?.lat, user?.lng, locationReady]);
+  }, [query, feedMode, user?.lat, user?.lng]);
 
   useEffect(() => {
     const el = containerRef.current || document.body;
