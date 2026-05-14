@@ -40,10 +40,18 @@ export async function uploadImage(file, bucket, path, opts = {}) {
  */
 function compressImage(file, maxWidth, quality) {
   return new Promise((resolve, reject) => {
+    // Validar que sea una imagen
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('El archivo no es una imagen válida'));
+      return;
+    }
+
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
+    let loadTimeout;
 
     img.onload = () => {
+      clearTimeout(loadTimeout);
       URL.revokeObjectURL(objectUrl);
 
       const scale = img.width > maxWidth ? maxWidth / img.width : 1;
@@ -67,7 +75,18 @@ function compressImage(file, maxWidth, quality) {
       );
     };
 
-    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
+    img.onerror = () => {
+      clearTimeout(loadTimeout);
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('No se pudo cargar la imagen. Verifica que sea un archivo de imagen válido.'));
+    };
+
+    // Timeout de 10 segundos para cargar la imagen
+    loadTimeout = setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Tiempo agotado al cargar la imagen'));
+    }, 10000);
+
     img.src = objectUrl;
   });
 }

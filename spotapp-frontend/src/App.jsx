@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import AcordeonInicio from "./componentes/acordeon-inicio/acordeon.jsx";
 import Registro from "./componentes/acordeon-inicio/registro.jsx";
 import Lobby from "./pantallas/lobby/index.jsx";
+import Ayuda from "./pantallas/ayuda/index.jsx";
 import ProtectedRoute from "./protected_route.jsx";
 import RedirectIfAuthenticated from "./redirect_if_authenticated.jsx";
 import SobreNosotros from "./pantallas/sobre_nosotros";
@@ -47,6 +48,14 @@ const App = () => {
               <RedirectIfAuthenticated>
                 <SobreNosotros />
               </RedirectIfAuthenticated>
+            }
+          />
+          <Route
+            path="/ayuda"
+            element={
+              <ProtectedRoute>
+                <Ayuda />
+              </ProtectedRoute>
             }
           />
             </Routes>

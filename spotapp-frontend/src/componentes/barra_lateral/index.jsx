@@ -30,7 +30,7 @@ export const BarraLateral = ({ children, className = "", compact = false, onHome
                     </button>
                 </div>
 
-                {/* Divisor + Iniciar reseña */}
+                {/* Divisor + Agregar lugar */}
                 {onCreate && (
                     <div className={`${compact ? 'pt-2' : 'pt-2'}`}>
                         <div className="h-px bg-[var(--border-color)] mb-3" />
@@ -39,7 +39,7 @@ export const BarraLateral = ({ children, className = "", compact = false, onHome
                             className={`w-full flex items-center gap-3 ${compact ? 'pl-0 py-3' : 'py-2'} text-sm text-[var(--text-secondary)] hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200 min-w-0`}
                         >
                             <FiPlus className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ strokeWidth: 1 }} />
-                            <span className="truncate">Iniciar reseña</span>
+                            <span className="truncate">Agregar lugar</span>
                         </button>
                     </div>
                 )}

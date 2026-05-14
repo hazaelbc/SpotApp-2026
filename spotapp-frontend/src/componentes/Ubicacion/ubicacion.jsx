@@ -230,62 +230,42 @@ const Ubicacion = ({ isOpen: controlledIsOpen, onClose: controlledOnClose, onSav
 
   // ── Exact-map: auto-geolocation on mount ──
   const handleUseMyLocation = (mapInstance, markerInstance) => {
-    if (!navigator.geolocation) {
-      alert('Geolocalización no está disponible en este navegador. Intenta con otro navegador o usa la búsqueda de ciudades.');
-      return;
-    }
+    if (!navigator.geolocation) return;
+    
     setLoadingPosition(true);
     setMensaje('Obteniendo ubicación...');
     
-    const successCallback = async (pos) => {
-      try {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const coordStr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-        setUbicacion(coordStr);
-        const mapRef = mapInstance || map;
-        const markerRef = markerInstance || marker;
-        setTimeout(() => {
-          try {
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setUbicacion(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+          
+          const mapRef = mapInstance || map;
+          const markerRef = markerInstance || marker;
+          
+          setTimeout(() => {
             if (mapRef) {
               mapRef.setView([lat, lng], 15);
-              if (markerRef) {
-                markerRef.setLatLng([lat, lng]);
-              }
+              if (markerRef) markerRef.setLatLng([lat, lng]);
             }
-          } catch (e) { console.error('Error updating map:', e); }
-        }, 100);
-        await reverseGeocodeAndFill(lat, lng);
+          }, 100);
+          
+          await reverseGeocodeAndFill(lat, lng);
+        } catch (e) {
+          console.debug('Geolocation callback error:', e);
+        } finally {
+          setLoadingPosition(false);
+          setMensaje('');
+        }
+      },
+      () => {
+        // Silently fail - user can manually select location
         setLoadingPosition(false);
         setMensaje('');
-      } catch (e) {
-        console.error('Error in geolocation success callback:', e);
-        setLoadingPosition(false);
-        setMensaje('Error al procesar ubicación');
-      }
-    };
-
-    const errorCallback = (err) => {
-      setLoadingPosition(false);
-      let errorMsg = 'No se pudo obtener la ubicación';
-      
-      if (err.code === 1) {
-        errorMsg = 'Permiso denegado. Habilita la geolocalización en los permisos del navegador.';
-      } else if (err.code === 2) {
-        errorMsg = 'Ubicación no disponible. Intenta en otro lugar.';
-      } else if (err.code === 3) {
-        errorMsg = 'Tiempo de espera agotado. Intenta de nuevo.';
-      }
-      
-      console.warn('Geolocation error:', err.code, err.message);
-      setMensaje(errorMsg);
-      alert(errorMsg);
-    };
-
-    navigator.geolocation.getCurrentPosition(
-      successCallback,
-      errorCallback,
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 

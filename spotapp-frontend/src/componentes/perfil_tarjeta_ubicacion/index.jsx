@@ -7,6 +7,7 @@ import { useUser } from '../../userProvider';
 import '../Ubicacion/ubicacion.css';
 import BuzonResenas from '../buzon_resenas';
 import GaleriaEfimera from '../galeria_efimera';
+import AddPhotoToPlaceButton from '../add-photo-to-place-button';
 import '../../../node_modules/leaflet/dist/leaflet.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -454,22 +455,20 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
   function resolveGalleryImages(srcItem){
     try{
       if(!srcItem) return [];
+      // Mostrar SOLO las fotos de galería (no incluir el banner/imagen principal)
       if (Array.isArray(srcItem.fotos) && srcItem.fotos.length) {
         return srcItem.fotos.map(f => (typeof f === 'string' ? f : (f && (f.url || f.src || f.imagen) ? (f.url || f.src || f.imagen) : null))).filter(Boolean);
       }
-      const primary = resolvePrimaryImage(srcItem);
-      return primary ? [primary] : [];
+      // Si no hay fotos de galería, retornar array vacío (no mostrar el banner aquí)
+      return [];
     }catch(e){ return []; }
   }
 
   // For demo: build a larger set of images to exercise the gallery behavior
-  const demoImages = useMemo(() => {
+  const galleryImages = useMemo(() => {
     const base = resolveGalleryImages(item);
-    // add many placeholder images (picsum) to test rotation/layouts — made larger per request
-    const placeholders = Array.from({ length: 48 }, (_, i) => `https://picsum.photos/seed/spotapp-${i}/1000/800`);
-    // ensure uniqueness and avoid duplicates
-    const combined = [...base, ...placeholders].filter(Boolean);
-    return Array.from(new Set(combined));
+    // Solo mostrar las fotos reales del lugar (sin placeholders)
+    return base;
   }, [item]);
 
   const displayedRating = useMemo(() => {
@@ -598,7 +597,20 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
           <p className="mt-4 text-[var(--text-primary)]">{item.descripcion}</p>
 
           <div className="mt-6">
-            <GaleriaEfimera images={demoImages} intervalSeconds={10} crop={true} maxSlots={8} />
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">Galería del lugar</h3>
+              <AddPhotoToPlaceButton 
+                placeId={item.id}
+                usuarioId={user?.id}
+              />
+            </div>
+            {galleryImages.length > 0 ? (
+              <GaleriaEfimera images={galleryImages} intervalSeconds={10} crop={true} maxSlots={8} />
+            ) : (
+              <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg p-8 text-center">
+                <p className="text-[var(--text-tertiary)] text-sm">Aún no hay fotos. ¡Sé el primero en agregar una!</p>
+              </div>
+            )}
           </div>
 
           <section className="mt-6">

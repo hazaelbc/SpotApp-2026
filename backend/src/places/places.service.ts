@@ -400,4 +400,38 @@ export class PlacesService {
       return [];
     }
   }
+
+  // Agregar foto a galería comunitaria
+  async addPhotoToPlace(placeId: number, imagenUrl: string, usuarioId?: number) {
+    try {
+      // Obtener el número de fotos existentes para determinar el orden
+      const existingPhotos = await this.prisma.placePhoto.findMany({
+        where: { placeId },
+        orderBy: { orden: 'desc' },
+        take: 1,
+      });
+
+      const nextOrden = existingPhotos.length > 0 ? existingPhotos[0].orden + 1 : 0;
+
+      // Crear la nueva foto
+      const newPhoto = await this.prisma.placePhoto.create({
+        data: {
+          placeId,
+          url: imagenUrl,
+          orden: nextOrden,
+        },
+      });
+
+      // Retornar el place actualizado con todas sus fotos
+      const updatedPlace = await this.prisma.place.findUnique({
+        where: { id: placeId },
+        include: { fotos: true },
+      });
+
+      return this.normalizePlaceOutput(updatedPlace);
+    } catch (error: any) {
+      console.error('Error adding photo to place:', error);
+      throw new HttpException(error?.message || 'Error al agregar foto', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

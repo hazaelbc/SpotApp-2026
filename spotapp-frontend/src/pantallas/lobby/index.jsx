@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { uploadImage } from "../../utils/uploadImage";
 import * as nsfwjs from 'nsfwjs';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +13,7 @@ import TarjetaUbicacionIndividual from "../../componentes/tarjetas_ubicacion";
 import AdSenseBanner from "../../componentes/adsense-banner";
 import BarraHerramientasMovil from "../../componentes/barra_herramientas_movil";
 import { useUser } from "../../userProvider";
-import { FiBell, FiHome, FiCompass, FiSettings, FiTrendingUp, FiMap, FiMail } from "react-icons/fi";
+import { FiBell, FiHome, FiCompass, FiSettings, FiTrendingUp, FiMap, FiMail, FiHelpCircle } from "react-icons/fi";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import PerfilTarjetaUbicacion from "../../componentes/perfil_tarjeta_ubicacion";
 import PerfilUsuario from "../../componentes/perfil_usuario";
@@ -40,6 +41,7 @@ export const Lobby = ({ children }) => {
   const [draftLocation, setDraftLocation] = useState('');
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showConfirmDiscardDialog, setShowConfirmDiscardDialog] = useState(false);
   const [isMessagesOpen, setIsMessagesOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isMobileSearchVisible, setIsMobileSearchVisible] = useState(false);
@@ -60,6 +62,7 @@ export const Lobby = ({ children }) => {
   const [createDescripcion, setCreateDescripcion] = useState('');
   const [createImageFile, setCreateImageFile] = useState(null);
   const [createImagePreview, setCreateImagePreview] = useState(null);
+  const [createGalleryPhotos, setCreateGalleryPhotos] = useState([]); // Fotos para galería comunitaria
   const [createLocationCoords, setCreateLocationCoords] = useState(null); // { lat, longitud }
   const [createLocationLabel, setCreateLocationLabel] = useState('');
   const [createLocationTemp, setCreateLocationTemp] = useState(() => ({
@@ -87,6 +90,7 @@ export const Lobby = ({ children }) => {
     setCreateDescripcion('');
     setCreateImageFile(null);
     setCreateImagePreview(null);
+    setCreateGalleryPhotos([]);
     setCreateLocationCoords(null);
     setCreateLocationLabel('');
     setCreateNameError(false);
@@ -135,9 +139,22 @@ export const Lobby = ({ children }) => {
     }
   };
 
+  const hasDataInForm = () => {
+    return createNombre.trim() || createDescripcion.trim() || createImageFile || createLocationCoords;
+  };
+
+  const handleCancelClick = () => {
+    if (hasDataInForm()) {
+      setShowConfirmDiscardDialog(true);
+    } else {
+      closeCreateModal();
+    }
+  };
+
   const closeCreateModal = () => {
     setIsCreateModalOpen(false);
     resetCreateForm();
+    setShowConfirmDiscardDialog(false);
   };
 
   const handleLogout = () => {
@@ -193,6 +210,10 @@ export const Lobby = ({ children }) => {
         body.ubicacionLabel = createLocationLabel || '';
       }
       if (user && user.id) body.creatorId = user.id;
+      // Agregar fotos de galería si existen URLs
+      if (createGalleryPhotos.length > 0) {
+        body.fotos = createGalleryPhotos.filter(p => p.url).map(p => p.url);
+      }
 
       const response = await fetch('/api/places', {
         method: 'POST',
@@ -562,6 +583,14 @@ export const Lobby = ({ children }) => {
               {/* Theme toggle and config - desktop only */}
                 <div className="hidden lg:flex items-center gap-2">
                 <ThemeToggle />
+                <button 
+                  onClick={() => navigate('/ayuda')}
+                  className="flex items-center gap-2 px-3 py-1.5 sm:py-2 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200" 
+                  title="Centro de ayuda"
+                >
+                  <FiHelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600 dark:text-[var(--text-secondary)]" style={{ strokeWidth: 1 }} />
+                  <span className="text-sm font-medium text-gray-700 dark:text-[var(--text-primary)]">Ayuda</span>
+                </button>
                 <DropdownMenu.Root>
                   <DropdownMenu.Trigger asChild>
                     <button className="flex items-center gap-2 px-3 py-1.5 sm:py-2 hover:bg-gray-200 dark:hover:bg-[var(--bg-tertiary)] rounded-lg transition-colors duration-200" aria-label="Configuración">
@@ -593,7 +622,7 @@ export const Lobby = ({ children }) => {
 
           {/* Segunda línea: Barra de búsqueda en app mode + icono de filtrar */}
             <div className="lg:hidden mt-3 sticky top-12 z-20 px-4">
-            <BarraBusqueda onSearch={(q) => { setQuery(q); setViewMode((v) => v === 'friends' ? 'friends' : 'all'); setSelectedCard(null); }} placeholder="Buscar en la Lobby..." />
+            <BarraBusqueda onSearch={(q) => { setQuery(q); setViewMode((v) => v === 'friends' ? 'friends' : 'all'); setSelectedCard(null); }} placeholder="Buscar lugares..." />
             {!profileUser && (
               <div className="mt-2 flex items-center gap-2">
                 <button
@@ -755,7 +784,7 @@ export const Lobby = ({ children }) => {
       {/* ── Wizard: Crear lugar ── */}
       <div className={`${isCreateModalOpen ? 'fixed inset-0 z-[60] flex items-end sm:items-center justify-center' : 'hidden'}`}>
         {/* Backdrop */}
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-md" onClick={closeCreateModal} />
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-md" onClick={handleCancelClick} />
 
         {/* Modal */}
         <div className="relative z-60 w-full sm:max-w-xl mx-0 sm:mx-4 max-h-[95dvh] sm:max-h-[90dvh] bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-t-2xl sm:rounded-xl shadow-[0_24px_64px_var(--shadow-color)] overflow-hidden flex flex-col pb-[env(safe-area-inset-bottom,0px)]">
@@ -777,9 +806,9 @@ export const Lobby = ({ children }) => {
               </div>
               <div>
                 <h4 className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">
-                  {createWizardStep === 1 ? 'Información del lugar' : 'Seleccionar ubicación'}
+                  {createWizardStep === 1 ? 'Información del lugar' : createWizardStep === 2 ? 'Seleccionar ubicación' : 'Fotos para galería'}
                 </h4>
-                <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">Paso {createWizardStep} de 2</p>
+                <p className="text-[11px] text-[var(--text-tertiary)] mt-0.5">Paso {createWizardStep} de 3</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -787,9 +816,10 @@ export const Lobby = ({ children }) => {
               <div className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full transition-colors ${createWizardStep === 1 ? 'bg-[var(--text-secondary)]' : 'bg-[var(--border-color)]'}`} />
                 <span className={`w-2 h-2 rounded-full transition-colors ${createWizardStep === 2 ? 'bg-[var(--text-secondary)]' : 'bg-[var(--border-color)]'}`} />
+                <span className={`w-2 h-2 rounded-full transition-colors ${createWizardStep === 3 ? 'bg-[var(--text-secondary)]' : 'bg-[var(--border-color)]'}`} />
               </div>
               <button
-                onClick={closeCreateModal}
+                onClick={handleCancelClick}
                 className="w-8 h-8 rounded-xl border border-[var(--border-color)] bg-[var(--bg-tertiary)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24">
@@ -989,7 +1019,7 @@ export const Lobby = ({ children }) => {
               {/* Acciones paso 1 */}
               <div className="flex justify-end gap-3 pt-1">
                 <button
-                  onClick={closeCreateModal}
+                  onClick={handleCancelClick}
                   className="px-5 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-sm hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors"
                 >
                   Cancelar
@@ -1082,6 +1112,278 @@ export const Lobby = ({ children }) => {
                   Atrás
                 </button>
                 <button
+                  onClick={() => setCreateWizardStep(3)}
+                  className="px-6 py-2.5 rounded-xl bg-[var(--text-primary)] hover:opacity-80 text-[var(--bg-primary)] text-sm font-semibold flex items-center gap-2 transition-opacity"
+                >
+                  Siguiente
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+
+            </div>
+          )}
+
+          {/* ── Paso 3: Fotos para galería ── */}
+          {createWizardStep === 3 && (
+            <div className="px-4 sm:px-6 py-4 sm:py-6 flex flex-col gap-5 flex-1 min-h-0 overflow-y-auto">
+
+              {/* Título */}
+              <div className="flex flex-col gap-1">
+                <h2 className="text-base font-semibold text-[var(--text-primary)]">Fotos para galería</h2>
+                <p className="text-[12px] text-[var(--text-tertiary)]">Sube 2 fotos que tomaste en el lugar (opcional pero recomendado)</p>
+              </div>
+
+              {/* Foto 1 */}
+              <div className="flex flex-col gap-3">
+                <label className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-widest">
+                  Foto 1
+                </label>
+                <div className="flex items-center gap-3">
+                  <label htmlFor="gallery-image-1" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-sm cursor-pointer hover:border-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    Subir imagen
+                  </label>
+                  <input id="gallery-image-1" type="file" accept="image/*" className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      e.target.value = '';
+
+                      const objectUrl = URL.createObjectURL(f);
+                      setCreateGalleryPhotos((prev) => {
+                        const updated = [...prev];
+                        updated[0] = { file: f, preview: objectUrl, url: null };
+                        return updated;
+                      });
+
+                      try {
+                        // Cargar modelo NSFW si no está cargado
+                        if (!nsfwModelRef.current) {
+                          nsfwModelRef.current = await nsfwjs.load();
+                        }
+                        // Crear img para clasificar
+                        const img = new Image();
+                        img.src = objectUrl;
+                        await new Promise((res) => { img.onload = res; });
+                        const predictions = await nsfwModelRef.current.classify(img);
+
+                        // Validar contenido (mismo criterio que Paso 1)
+                        const neutral = predictions.find(p => p.className === 'Neutral')?.probability ?? 0;
+                        const rules = { Porn: 0.25, Hentai: 0.25, Sexy: 0.45, Drawing: 0.75 };
+                        const blocked =
+                          neutral < 0.5
+                          || predictions.find(p => rules[p.className] != null && p.probability >= rules[p.className]);
+
+                        if (blocked) {
+                          setCreateGalleryPhotos((prev) => {
+                            const updated = [...prev];
+                            updated.splice(0, 1);
+                            return updated;
+                          });
+                          URL.revokeObjectURL(objectUrl);
+                          window.alert('Esta imagen no fue aceptada. Por favor, sube una foto real del lugar.');
+                          return;
+                        }
+
+                        // Subir a Storage
+                        const path = `places/gallery/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+                        const url = await uploadImage(f, 'spotapp', path, { maxWidth: 500, quality: 0.8 });
+                        setCreateGalleryPhotos((prev) => {
+                          const updated = [...prev];
+                          if (updated[0]) updated[0].url = url;
+                          return updated;
+                        });
+                      } catch (err) {
+                        console.error('[Gallery Photo 1] error', err);
+                        setCreateGalleryPhotos((prev) => {
+                          const updated = [...prev];
+                          updated.splice(0, 1);
+                          return updated;
+                        });
+                        URL.revokeObjectURL(objectUrl);
+                        window.alert('No se pudo procesar la imagen. Intenta con otra foto.');
+                      }
+                    }}
+                  />
+                </div>
+                {/* Preview Foto 1 */}
+                {createGalleryPhotos[0] && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)]">
+                    <img src={createGalleryPhotos[0].preview} alt="preview" className="w-12 h-12 rounded-lg object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[var(--text-secondary)] truncate">{createGalleryPhotos[0].file.name}</p>
+                      {createGalleryPhotos[0].url && (
+                        <p className="text-[10px] text-emerald-400">✓ Subida</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => document.getElementById('gallery-image-1').click()}
+                        className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        title="Cambiar foto"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCreateGalleryPhotos((prev) => {
+                            const updated = [...prev];
+                            updated.splice(0, 1);
+                            return updated;
+                          });
+                          URL.revokeObjectURL(createGalleryPhotos[0].preview);
+                        }}
+                        className="p-2 rounded-lg hover:bg-red-500/10 transition-colors text-[var(--text-secondary)] hover:text-red-400"
+                        title="Eliminar foto"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Foto 2 */}
+              <div className="flex flex-col gap-3">
+                <label className="text-[11px] font-semibold text-[var(--text-tertiary)] uppercase tracking-widest">
+                  Foto 2
+                </label>
+                <div className="flex items-center gap-3">
+                  <label htmlFor="gallery-image-2" className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-sm cursor-pointer hover:border-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    Subir imagen
+                  </label>
+                  <input id="gallery-image-2" type="file" accept="image/*" className="hidden"
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      e.target.value = '';
+
+                      const objectUrl = URL.createObjectURL(f);
+                      setCreateGalleryPhotos((prev) => {
+                        const updated = [...prev];
+                        updated[1] = { file: f, preview: objectUrl, url: null };
+                        return updated;
+                      });
+
+                      try {
+                        // Cargar modelo NSFW si no está cargado
+                        if (!nsfwModelRef.current) {
+                          nsfwModelRef.current = await nsfwjs.load();
+                        }
+                        // Crear img para clasificar
+                        const img = new Image();
+                        img.src = objectUrl;
+                        await new Promise((res) => { img.onload = res; });
+                        const predictions = await nsfwModelRef.current.classify(img);
+
+                        // Validar contenido (mismo criterio que Paso 1)
+                        const neutral = predictions.find(p => p.className === 'Neutral')?.probability ?? 0;
+                        const rules = { Porn: 0.25, Hentai: 0.25, Sexy: 0.45, Drawing: 0.75 };
+                        const blocked =
+                          neutral < 0.5
+                          || predictions.find(p => rules[p.className] != null && p.probability >= rules[p.className]);
+
+                        if (blocked) {
+                          setCreateGalleryPhotos((prev) => {
+                            const updated = [...prev];
+                            updated.splice(1, 1);
+                            return updated;
+                          });
+                          URL.revokeObjectURL(objectUrl);
+                          window.alert('Esta imagen no fue aceptada. Por favor, sube una foto real del lugar.');
+                          return;
+                        }
+
+                        // Subir a Storage
+                        const path = `places/gallery/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+                        const url = await uploadImage(f, 'spotapp', path, { maxWidth: 500, quality: 0.8 });
+                        setCreateGalleryPhotos((prev) => {
+                          const updated = [...prev];
+                          if (updated[1]) updated[1].url = url;
+                          return updated;
+                        });
+                      } catch (err) {
+                        console.error('[Gallery Photo 2] error', err);
+                        setCreateGalleryPhotos((prev) => {
+                          const updated = [...prev];
+                          updated.splice(1, 1);
+                          return updated;
+                        });
+                        URL.revokeObjectURL(objectUrl);
+                        window.alert('No se pudo procesar la imagen. Intenta con otra foto.');
+                      }
+                    }}
+                  />
+                </div>
+                {/* Preview Foto 2 */}
+                {createGalleryPhotos[1] && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-color)]">
+                    <img src={createGalleryPhotos[1].preview} alt="preview" className="w-12 h-12 rounded-lg object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-[var(--text-secondary)] truncate">{createGalleryPhotos[1].file.name}</p>
+                      {createGalleryPhotos[1].url && (
+                        <p className="text-[10px] text-emerald-400">✓ Subida</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => document.getElementById('gallery-image-2').click()}
+                        className="p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        title="Cambiar foto"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCreateGalleryPhotos((prev) => {
+                            const updated = [...prev];
+                            updated.splice(1, 1);
+                            return updated;
+                          });
+                          URL.revokeObjectURL(createGalleryPhotos[1].preview);
+                        }}
+                        className="p-2 rounded-lg hover:bg-red-500/10 transition-colors text-[var(--text-secondary)] hover:text-red-400"
+                        title="Eliminar foto"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Mensaje de ayuda */}
+              <div className="px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                <p className="text-[11px] text-blue-400 leading-snug">💡 Estas fotos se mostrarán en la galería comunitaria del lugar y ayudarán a otros usuarios a conocer mejor el sitio.</p>
+              </div>
+
+              {/* Acciones paso 3 */}
+              <div className="flex justify-between gap-3 pt-1">
+                <button
+                  onClick={() => setCreateWizardStep(2)}
+                  className="px-5 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-sm hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 24 24">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                  </svg>
+                  Atrás
+                </button>
+                <button
                   onClick={handleCreatePlace}
                   disabled={isSubmittingPlace}
                   aria-busy={isSubmittingPlace}
@@ -1096,7 +1398,7 @@ export const Lobby = ({ children }) => {
                       <path d="M12 5v14M5 12h14" />
                     </svg>
                   )}
-                  {isSubmittingPlace ? 'Creando...' : 'Crear lugar'}
+                  {isSubmittingPlace ? 'Publicando...' : 'Publicar lugar'}
                 </button>
               </div>
 
@@ -1105,6 +1407,43 @@ export const Lobby = ({ children }) => {
 
         </div>
       </div>
+
+      {/* Confirmation dialog for discarding unsaved changes */}
+      {showConfirmDiscardDialog && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-5 flex items-center gap-3 border-b border-[var(--border-color)]">
+              <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path d="M12 9v2m0 4v2m-6-4a9 9 0 1118 0 9 9 0 01-18 0z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-[var(--text-primary)]">¿Descartar cambios?</h3>
+                <p className="text-sm text-[var(--text-tertiary)] mt-1">Se perderán todos los datos que hayas ingresado.</p>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="px-6 py-4 flex gap-3 justify-end">
+              <button
+                onClick={() => setShowConfirmDiscardDialog(false)}
+                className="px-5 py-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-sm hover:text-[var(--text-primary)] hover:border-[var(--text-tertiary)] transition-colors font-medium"
+              >
+                Continuar editando
+              </button>
+              <button
+                onClick={closeCreateModal}
+                className="px-5 py-2.5 rounded-xl bg-red-500 text-white text-sm hover:bg-red-600 transition-colors font-medium"
+              >
+                Descartar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Mobile navigation bar (fixed, visible only on mobile) */}
       <BarraHerramientasMovil

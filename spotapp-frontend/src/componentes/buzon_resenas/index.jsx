@@ -223,7 +223,7 @@ export default function BuzonResenas({ placeId, resenaId, onAverageRatingChange,
                     <input
                         value={text}
                         onChange={e => setText(e.target.value)}
-                        placeholder="Escribe tu comentario..."
+                        placeholder="Escribe tu comentario y califica con estrellas..."
                         className="flex-1 bg-transparent text-[var(--text-primary)] placeholder:text-gray-400 dark:placeholder:text-[var(--text-tertiary)] outline-none focus:outline-none px-2 rounded-none"
                         maxLength={220}
                     />
