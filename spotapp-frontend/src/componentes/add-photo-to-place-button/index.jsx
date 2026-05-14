@@ -114,18 +114,18 @@ export default function AddPhotoToPlaceButton({
       <button
         onClick={handleClick}
         disabled={isUploading}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white text-sm font-medium transition-colors"
+        className="inline-flex items-center gap-2 px-3 py-2 rounded border border-[var(--border-color)] hover:border-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed text-[var(--text-primary)] text-sm font-medium transition-colors"
         title="Agregar tu foto al lugar"
       >
         {isUploading ? (
           <>
             <FiLoader className="w-4 h-4 animate-spin" />
-            Subiendo...
+            <span>Subiendo...</span>
           </>
         ) : (
           <>
-            <FiUpload className="w-4 h-4" />
-            Agregar mi foto
+            <FiUpload className="w-4 h-4" style={{ strokeWidth: 1.5 }} />
+            <span>Agregar mi foto</span>
           </>
         )}
       </button>
