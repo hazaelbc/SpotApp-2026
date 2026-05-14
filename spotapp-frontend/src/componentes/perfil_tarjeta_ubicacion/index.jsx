@@ -70,21 +70,30 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
 
   // Cargar datos completos del lugar (incluyendo fotos) al montar
   useEffect(() => {
-    if (!item?.id) return;
+    console.log('[DEBUG] useEffect dispara, item.id:', item?.id);
+    if (!item?.id) {
+      console.log('[DEBUG] item.id no existe, abortando');
+      return;
+    }
     
     const loadCompletePlace = async () => {
+      console.log(`[DEBUG] Fetcheando ${API_URL}/places/${item.id}`);
       try {
         const res = await fetch(`${API_URL}/places/${item.id}`, {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
         });
+        console.log('[DEBUG] Response status:', res.status);
         if (res.ok) {
           const complete = await res.json();
           console.log(`✅ Lugar cargado con ${complete.fotos?.length || 0} fotos`);
+          console.log('[DEBUG] Fotos recibidas:', complete.fotos);
           setCurrentPlace(complete);
+        } else {
+          console.error('[DEBUG] Response NOT ok, status:', res.status);
         }
       } catch (err) {
-        console.error('Error cargando lugar completo:', err);
+        console.error('[DEBUG] Error en fetch:', err);
       }
     };
 
