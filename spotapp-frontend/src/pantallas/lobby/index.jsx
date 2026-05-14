@@ -1540,6 +1540,9 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
   // Ad positions computed once per full dataset load
   const adFeedRef = useRef(null);
   const adFeedSourceRef = useRef(null);
+  // Manejo de errores de carga
+  const [loadError, setLoadError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Reset pagination when query, feed mode, or user location changes
   // No disparar si la ubicación aún no está lista (evita fetch con coords incorrectas)
@@ -1590,49 +1593,90 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cards.length, loading, hasMore]);
 
+  // Reintentar carga manualmente
+  function handleRetry() {
+    setLoadError(null);
+    setCards([]);
+    setAllPlaces(null);
+    setHasMore(true);
+    pageRef.current = 0;
+    loadMoreCards();
+  }
+
   // load places from backend (once) and store in `allPlaces` for client-side pagination
+  // Con reintentos automáticos (máx 3 intentos) + backoff exponencial
   async function fetchAllPlaces() {
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-      let endpoint;
-      if (feedMode === 'trending') {
-        endpoint = `${API_URL}/places/trending?limit=200`;
-      } else {
-        const params = new URLSearchParams();
-        if (Number.isFinite(Number(user?.lat)) && Number.isFinite(Number(user?.lng))) {
-          params.set('lat', String(user.lat));
-          params.set('lng', String(user.lng));
-          params.set('radiusKm', '5');
+    const MAX_RETRIES = 3;
+    const INITIAL_DELAY = 1000; // 1 segundo
+    
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        let endpoint;
+        if (feedMode === 'trending') {
+          endpoint = `${API_URL}/places/trending?limit=200`;
+        } else {
+          const params = new URLSearchParams();
+          if (Number.isFinite(Number(user?.lat)) && Number.isFinite(Number(user?.lng))) {
+            params.set('lat', String(user.lat));
+            params.set('lng', String(user.lng));
+            params.set('radiusKm', '5');
+          }
+          endpoint = `${API_URL}/places/db${params.toString() ? `?${params.toString()}` : ''}`;
         }
-        endpoint = `${API_URL}/places/db${params.toString() ? `?${params.toString()}` : ''}`;
+        
+        // Fetch con timeout (10s)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const res = await fetch(endpoint, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        
+        const data = await res.json();
+        setLoadError(null); // Limpiar error si era anterior
+        
+        // normalize each place to expected card shape
+        return data.map((p) => ({
+          id: p.id,
+          nombre: p.nombre || p.nombreLugar || `Lugar ${p.id}`,
+          categoria: p.categoria || 'Lugar',
+          descripcion: p.descripcion || '',
+          imagen: (p.imagen && p.imagen.length) ? p.imagen : (p.fotos && p.fotos[0]) ? p.fotos[0] : '/examples/ensenada1.svg',
+          calificacion: Number.isFinite(Number(p.calificacion)) ? Number(p.calificacion) : 0,
+          vistas: feedMode === 'trending' ? (p.vistasUltimas24h ?? p.vistas ?? 0) : (p.vistas ?? 0),
+          vistasTotales: p.vistas ?? 0,
+          vistasUltimas24h: p.vistasUltimas24h ?? null,
+          vistasUltimas1h: p.vistasUltimas1h ?? null,
+          trendingScore: p.trendingScore ?? null,
+          lat: p.lat ?? p.latitud,
+          lng: p.lng ?? p.longitud,
+          raw: p,
+        }));
+      } catch (e) {
+        console.warn(`[CardsList] Intento ${attempt}/${MAX_RETRIES} falló:`, e.message);
+        
+        if (attempt === MAX_RETRIES) {
+          // Último intento falló
+          const errorMsg = e.name === 'AbortError' 
+            ? 'La solicitud tardó demasiado. Verifica tu conexión.'
+            : `No se pudieron cargar los lugares. Error: ${e.message}`;
+          setLoadError(errorMsg);
+          console.error('[CardsList] Todos los reintentos fallaron:', errorMsg);
+          return null;
+        }
+        
+        // Esperar antes de reintentar (backoff exponencial: 1s, 2s, 4s)
+        const delayMs = INITIAL_DELAY * Math.pow(2, attempt - 1);
+        console.log(`[CardsList] Reintentando en ${delayMs}ms...`);
+        await new Promise(r => setTimeout(r, delayMs));
       }
-      const res = await fetch(endpoint);
-      if (!res.ok) {
-        console.warn('Failed to fetch places', res.status);
-        return null;
-      }
-      const data = await res.json();
-      // normalize each place to expected card shape
-      return data.map((p) => ({
-        id: p.id,
-        nombre: p.nombre || p.nombreLugar || `Lugar ${p.id}`,
-        categoria: p.categoria || 'Lugar',
-        descripcion: p.descripcion || '',
-        imagen: (p.imagen && p.imagen.length) ? p.imagen : (p.fotos && p.fotos[0]) ? p.fotos[0] : '/examples/ensenada1.svg',
-        calificacion: Number.isFinite(Number(p.calificacion)) ? Number(p.calificacion) : 0,
-        vistas: feedMode === 'trending' ? (p.vistasUltimas24h ?? p.vistas ?? 0) : (p.vistas ?? 0),
-        vistasTotales: p.vistas ?? 0,
-        vistasUltimas24h: p.vistasUltimas24h ?? null,
-        vistasUltimas1h: p.vistasUltimas1h ?? null,
-        trendingScore: p.trendingScore ?? null,
-        lat: p.lat ?? p.latitud,
-        lng: p.lng ?? p.longitud,
-        raw: p,
-      }));
-    } catch (e) {
-      console.error('fetchAllPlaces error', e);
-      return null;
     }
+    
+    return null;
   }
 
   async function loadMoreCards(){
@@ -1731,6 +1775,24 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
         {showTopAd && (
           <div className="mb-4">
             <AdSenseBanner fullWidth height={90} slotId="1553845738" />
+          </div>
+        )}
+
+        {/* Error banner con botón de reintentar */}
+        {loadError && (
+          <div className="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-800 dark:text-red-200">{loadError}</p>
+              </div>
+              <button
+                onClick={handleRetry}
+                disabled={loading}
+                className="flex-shrink-0 px-3 py-1.5 text-xs font-medium rounded bg-red-100 hover:bg-red-200 dark:bg-red-900/50 dark:hover:bg-red-900 text-red-700 dark:text-red-300 transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Reintentando...' : 'Reintentar'}
+              </button>
+            </div>
           </div>
         )}
 

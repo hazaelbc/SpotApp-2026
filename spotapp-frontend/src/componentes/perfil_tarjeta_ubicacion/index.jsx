@@ -70,30 +70,20 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
 
   // Cargar datos completos del lugar (incluyendo fotos) al montar
   useEffect(() => {
-    console.log('[DEBUG] useEffect dispara, item.id:', item?.id);
-    if (!item?.id) {
-      console.log('[DEBUG] item.id no existe, abortando');
-      return;
-    }
+    if (!item?.id) return;
     
     const loadCompletePlace = async () => {
-      console.log(`[DEBUG] Fetcheando ${API_URL}/places/${item.id}`);
       try {
         const res = await fetch(`${API_URL}/places/${item.id}`, {
           cache: 'no-store',
           headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
         });
-        console.log('[DEBUG] Response status:', res.status);
         if (res.ok) {
           const complete = await res.json();
-          console.log(`✅ Lugar cargado con ${complete.fotos?.length || 0} fotos`);
-          console.log('[DEBUG] Fotos recibidas:', complete.fotos);
           setCurrentPlace(complete);
-        } else {
-          console.error('[DEBUG] Response NOT ok, status:', res.status);
         }
       } catch (err) {
-        console.error('[DEBUG] Error en fetch:', err);
+        // Error silencioso
       }
     };
 
@@ -105,17 +95,15 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
     if (!currentPlace?.id) return;
     try {
       const res = await fetch(`${API_URL}/places/${currentPlace.id}`, {
-        cache: 'no-store',  // Evitar cache HTTP
+        cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
       });
       if (res.ok) {
         const updated = await res.json();
-        console.log(`DEBUG - Fotos en BD: ${updated.fotos?.length || 0}`);
-        console.log('DEBUG - Fotos array:', updated.fotos);
         setCurrentPlace(updated);
       }
     } catch (err) {
-      console.error('Error refrescando lugar:', err);
+      // Error silencioso
     }
   };
 
@@ -512,25 +500,17 @@ export default function PerfilTarjetaUbicacion({ item, onBack }){
   function resolveGalleryImages(srcItem){
     try{
       if(!srcItem) return [];
-      // Mostrar SOLO las fotos de galería (no incluir el banner/imagen principal)
       if (Array.isArray(srcItem.fotos) && srcItem.fotos.length) {
-        const result = srcItem.fotos.map(f => (typeof f === 'string' ? f : (f && (f.url || f.src || f.imagen) ? (f.url || f.src || f.imagen) : null))).filter(Boolean);
-        console.log(`DEBUG - resolveGalleryImages: ${result.length} fotos procesadas`);
-        return result;
+        return srcItem.fotos.map(f => (typeof f === 'string' ? f : (f && (f.url || f.src || f.imagen) ? (f.url || f.src || f.imagen) : null))).filter(Boolean);
       }
-      console.log('DEBUG - resolveGalleryImages: NO hay fotos, array vacío');
       return [];
     }catch(e){ 
-      console.error('ERROR en resolveGalleryImages:', e);
       return []; 
     }
   }
 
-  // For demo: build a larger set of images to exercise the gallery behavior
   const galleryImages = useMemo(() => {
-    const base = resolveGalleryImages(currentPlace);
-    console.log(`DEBUG - galleryImages final: ${base.length} fotos para renderizar`);
-    return base;
+    return resolveGalleryImages(currentPlace);
   }, [currentPlace]);
 
   const displayedRating = useMemo(() => {

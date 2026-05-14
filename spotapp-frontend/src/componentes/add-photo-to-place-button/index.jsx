@@ -38,7 +38,6 @@ export default function AddPhotoToPlaceButton({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    console.log('🔵 Subiendo foto a:', apiUrl);
     setIsUploading(true);
 
     try {
@@ -90,9 +89,6 @@ export default function AddPhotoToPlaceButton({
       // Mensaje de éxito
       alert('¡Foto agregada exitosamente!');
     } catch (error) {
-      console.error('Error completo:', error);
-      console.error('URL usado:', apiUrl);
-      
       let mensajeError = error.message;
       
       // Detectar errores específicos
