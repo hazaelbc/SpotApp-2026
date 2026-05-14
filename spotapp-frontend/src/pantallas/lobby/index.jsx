@@ -1604,10 +1604,9 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
   }
 
   // load places from backend (once) and store in `allPlaces` for client-side pagination
-  // Con reintentos automáticos (máx 4 intentos) + backoff exponencial + timeout mejorado
+  // Con reintentos automáticos + timeout mejorado
   async function fetchAllPlaces() {
-    const MAX_RETRIES = 4;
-    const INITIAL_DELAY = 500; // 500ms
+    const MAX_RETRIES = 3;
     const TIMEOUT_MS = 15000; // 15 segundos
     
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -1626,7 +1625,7 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
           endpoint = `${API_URL}/places/db${params.toString() ? `?${params.toString()}` : ''}`;
         }
         
-        // Fetch con timeout mejorado
+        // Fetch con timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
         
@@ -1638,9 +1637,8 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
         }
         
         const data = await res.json();
-        setLoadError(null); // Limpiar error si era anterior
+        setLoadError(null);
         
-        // normalize each place to expected card shape
         return data.map((p) => ({
           id: p.id,
           nombre: p.nombre || p.nombreLugar || `Lugar ${p.id}`,
@@ -1658,22 +1656,15 @@ function CardsList({ children, onSelect, query = '', feedMode = 'all' }){
           raw: p,
         }));
       } catch (e) {
-        console.warn(`[CardsList] Intento ${attempt}/${MAX_RETRIES} falló:`, e.message);
-        
         if (attempt === MAX_RETRIES) {
-          // Último intento falló
           const errorMsg = e.name === 'AbortError' 
-            ? 'La conexión tardó mucho tiempo. Verifica tu internet y recarga.'
-            : `No se pudieron cargar los lugares. Error: ${e.message}`;
+            ? 'La conexión tardó mucho. Verifica tu internet.'
+            : `Error cargando lugares: ${e.message}`;
           setLoadError(errorMsg);
-          console.error('[CardsList] Todos los reintentos fallaron:', errorMsg);
           return null;
         }
-        
-        // Esperar antes de reintentar (backoff exponencial: 500ms, 1s, 2s, 4s)
-        const delayMs = INITIAL_DELAY * Math.pow(2, attempt - 1);
-        console.log(`[CardsList] Reintentando en ${delayMs}ms (intento ${attempt}/${MAX_RETRIES})...`);
-        await new Promise(r => setTimeout(r, delayMs));
+        // Reintentar después de 1 segundo
+        await new Promise(r => setTimeout(r, 1000));
       }
     }
     
